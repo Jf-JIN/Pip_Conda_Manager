@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1166, 776)
+        MainWindow.resize(1166, 823)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -28,7 +28,6 @@ class Ui_MainWindow(object):
         sizePolicy.setHeightForWidth(self.centralwidget.sizePolicy().hasHeightForWidth())
         self.centralwidget.setSizePolicy(sizePolicy)
         self.centralwidget.setStyleSheet("QWidget{\n"
-"    font: 18px  \'黑体\';\n"
 "    color: rgb(236, 206, 174);\n"
 "}\n"
 "\n"
@@ -36,8 +35,12 @@ class Ui_MainWindow(object):
 "    background-color: rgb(19, 24, 66);\n"
 "}\n"
 "\n"
+"QFrame#frame_single_command, QFrame#frame_new_delete, QFrame#frame_env_cbb_display{\n"
+"    max-height:40px;\n"
+"}\n"
 "QToolBox::tab{\n"
 "    background-color: rgb(230, 131, 105);\n"
+"    font: 18px  \'黑体\';\n"
 "    color: rgb(19, 24, 66);\n"
 "    border-radius: 10px;\n"
 "}\n"
@@ -45,13 +48,14 @@ class Ui_MainWindow(object):
 "QToolBox::tab:selected {\n"
 "    background-color: rgb(236, 206, 174);\n"
 "    font-weight: bold;\n"
+"    font: 18px  \'黑体\';\n"
 "    color: rgb(251, 246, 226);\n"
 "    border: 2px solid;\n"
 "    border-color: rgb(230, 131, 105);\n"
 "}\n"
 "\n"
-"\n"
 "QGroupBox {\n"
+"    font: 18px  \'黑体\';\n"
 "    border: 2px solid;\n"
 "    border-radius: 20px;\n"
 "    border-color: rgb(230, 131, 105);\n"
@@ -68,17 +72,23 @@ class Ui_MainWindow(object):
 "    border-radius: 8px\n"
 "}\n"
 "\n"
+"QCheckBox, QLabel{\n"
+"    font: 18px  \'黑体\';\n"
+"}\n"
+"\n"
 "QLabel#lb_title{\n"
-"    font: 26px;\n"
+"    font: 26px  \'黑体\';\n"
 "}\n"
 "\n"
 "QPushButton{\n"
 "    border: 0px solid;\n"
 "    border-radius: 10px;\n"
+"    font: 18px  \'黑体\';\n"
 "    color: rgb(19, 24, 66);\n"
 "    background-color: rgb(230, 131, 105);\n"
 "    border: 1px solid;\n"
 "    border-radius: 10px;\n"
+"    max-height: 50px;\n"
 "}\n"
 "\n"
 "QPushButton:hover{\n"
@@ -88,14 +98,17 @@ class Ui_MainWindow(object):
 "    background-color: rgb(222, 105, 69);\n"
 "}\n"
 "\n"
+"\n"
 "QLineEdit{\n"
 "    border: 0px solid;\n"
 "    border-radius: 10px;\n"
 "    background-color: rgb(236, 206, 174);\n"
+"    font: 18px  \'黑体\';\n"
 "    color: rgb(19, 24, 66);\n"
 "}\n"
 "\n"
 "QListWidget, QTreeWidget, QComboBox#cbb_install_env{\n"
+"    font: 18px  \'黑体\';\n"
 "    color: rgb(19, 24, 66);\n"
 "    border: 0px solid;\n"
 "    border-radius: 10px;\n"
@@ -103,6 +116,7 @@ class Ui_MainWindow(object):
 "}\n"
 "\n"
 "QListView{\n"
+"    font: 18px  \'黑体\';\n"
 "    padding: 5px;\n"
 "}\n"
 "\n"
@@ -115,6 +129,7 @@ class Ui_MainWindow(object):
 "    border-bottom-right-radius: 3px;\n"
 "}\n"
 "QComboBox QAbstractItemView {\n"
+"    font: 18px  \'黑体\';\n"
 "    color: rgb(236, 206, 174);\n"
 "    background-color: rgb(19, 24, 66);\n"
 "    border: None;\n"
@@ -215,21 +230,22 @@ class Ui_MainWindow(object):
         sizePolicy.setHeightForWidth(self.treeWidget_env.sizePolicy().hasHeightForWidth())
         self.treeWidget_env.setSizePolicy(sizePolicy)
         self.treeWidget_env.setObjectName("treeWidget_env")
+        self.treeWidget_env.headerItem().setText(0, "1")
         self.verticalLayout_6.addWidget(self.treeWidget_env)
-        self.frame_13 = QtWidgets.QFrame(self.frame_5)
+        self.frame_env_cbb_display = QtWidgets.QFrame(self.frame_5)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(18)
-        sizePolicy.setHeightForWidth(self.frame_13.sizePolicy().hasHeightForWidth())
-        self.frame_13.setSizePolicy(sizePolicy)
-        self.frame_13.setFrameShape(QtWidgets.QFrame.StyledPanel)
-        self.frame_13.setFrameShadow(QtWidgets.QFrame.Raised)
-        self.frame_13.setObjectName("frame_13")
-        self.horizontalLayout_10 = QtWidgets.QHBoxLayout(self.frame_13)
+        sizePolicy.setHeightForWidth(self.frame_env_cbb_display.sizePolicy().hasHeightForWidth())
+        self.frame_env_cbb_display.setSizePolicy(sizePolicy)
+        self.frame_env_cbb_display.setFrameShape(QtWidgets.QFrame.StyledPanel)
+        self.frame_env_cbb_display.setFrameShadow(QtWidgets.QFrame.Raised)
+        self.frame_env_cbb_display.setObjectName("frame_env_cbb_display")
+        self.horizontalLayout_10 = QtWidgets.QHBoxLayout(self.frame_env_cbb_display)
         self.horizontalLayout_10.setContentsMargins(0, 0, 0, 5)
         self.horizontalLayout_10.setSpacing(10)
         self.horizontalLayout_10.setObjectName("horizontalLayout_10")
-        self.cbb_install_env = QtWidgets.QComboBox(self.frame_13)
+        self.cbb_install_env = QtWidgets.QComboBox(self.frame_env_cbb_display)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(100)
         sizePolicy.setVerticalStretch(0)
@@ -237,15 +253,15 @@ class Ui_MainWindow(object):
         self.cbb_install_env.setSizePolicy(sizePolicy)
         self.cbb_install_env.setObjectName("cbb_install_env")
         self.horizontalLayout_10.addWidget(self.cbb_install_env)
-        self.pb_env_update = QtWidgets.QPushButton(self.frame_13)
+        self.pb_restart = QtWidgets.QPushButton(self.frame_env_cbb_display)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        sizePolicy.setHorizontalStretch(15)
+        sizePolicy.setHorizontalStretch(32)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pb_env_update.sizePolicy().hasHeightForWidth())
-        self.pb_env_update.setSizePolicy(sizePolicy)
-        self.pb_env_update.setObjectName("pb_env_update")
-        self.horizontalLayout_10.addWidget(self.pb_env_update)
-        self.verticalLayout_6.addWidget(self.frame_13)
+        sizePolicy.setHeightForWidth(self.pb_restart.sizePolicy().hasHeightForWidth())
+        self.pb_restart.setSizePolicy(sizePolicy)
+        self.pb_restart.setObjectName("pb_restart")
+        self.horizontalLayout_10.addWidget(self.pb_restart)
+        self.verticalLayout_6.addWidget(self.frame_env_cbb_display)
         self.pb_pip_upgrade = QtWidgets.QPushButton(self.frame_5)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
@@ -255,6 +271,14 @@ class Ui_MainWindow(object):
         self.pb_pip_upgrade.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
         self.pb_pip_upgrade.setObjectName("pb_pip_upgrade")
         self.verticalLayout_6.addWidget(self.pb_pip_upgrade)
+        self.pb_env_manager = QtWidgets.QPushButton(self.frame_5)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(20)
+        sizePolicy.setHeightForWidth(self.pb_env_manager.sizePolicy().hasHeightForWidth())
+        self.pb_env_manager.setSizePolicy(sizePolicy)
+        self.pb_env_manager.setObjectName("pb_env_manager")
+        self.verticalLayout_6.addWidget(self.pb_env_manager)
         self.verticalLayout_2.addWidget(self.frame_5)
         self.frame_7 = QtWidgets.QFrame(self.frame)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
@@ -269,20 +293,20 @@ class Ui_MainWindow(object):
         self.verticalLayout_7.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_7.setSpacing(10)
         self.verticalLayout_7.setObjectName("verticalLayout_7")
-        self.frame_12 = QtWidgets.QFrame(self.frame_7)
+        self.frame_single_command = QtWidgets.QFrame(self.frame_7)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.frame_12.sizePolicy().hasHeightForWidth())
-        self.frame_12.setSizePolicy(sizePolicy)
-        self.frame_12.setFrameShape(QtWidgets.QFrame.StyledPanel)
-        self.frame_12.setFrameShadow(QtWidgets.QFrame.Raised)
-        self.frame_12.setObjectName("frame_12")
-        self.horizontalLayout_8 = QtWidgets.QHBoxLayout(self.frame_12)
+        sizePolicy.setVerticalStretch(50)
+        sizePolicy.setHeightForWidth(self.frame_single_command.sizePolicy().hasHeightForWidth())
+        self.frame_single_command.setSizePolicy(sizePolicy)
+        self.frame_single_command.setFrameShape(QtWidgets.QFrame.StyledPanel)
+        self.frame_single_command.setFrameShadow(QtWidgets.QFrame.Raised)
+        self.frame_single_command.setObjectName("frame_single_command")
+        self.horizontalLayout_8 = QtWidgets.QHBoxLayout(self.frame_single_command)
         self.horizontalLayout_8.setContentsMargins(0, 0, 0, 0)
         self.horizontalLayout_8.setSpacing(10)
         self.horizontalLayout_8.setObjectName("horizontalLayout_8")
-        self.label = QtWidgets.QLabel(self.frame_12)
+        self.label = QtWidgets.QLabel(self.frame_single_command)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -290,7 +314,7 @@ class Ui_MainWindow(object):
         self.label.setSizePolicy(sizePolicy)
         self.label.setObjectName("label")
         self.horizontalLayout_8.addWidget(self.label)
-        self.le_single_command = QtWidgets.QLineEdit(self.frame_12)
+        self.le_single_command = QtWidgets.QLineEdit(self.frame_single_command)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(100)
         sizePolicy.setVerticalStretch(0)
@@ -298,16 +322,16 @@ class Ui_MainWindow(object):
         self.le_single_command.setSizePolicy(sizePolicy)
         self.le_single_command.setObjectName("le_single_command")
         self.horizontalLayout_8.addWidget(self.le_single_command)
-        self.verticalLayout_7.addWidget(self.frame_12)
-        self.pb_launch = QtWidgets.QPushButton(self.frame_7)
+        self.pb_launch = QtWidgets.QPushButton(self.frame_single_command)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setHorizontalStretch(15)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.pb_launch.sizePolicy().hasHeightForWidth())
         self.pb_launch.setSizePolicy(sizePolicy)
         self.pb_launch.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
         self.pb_launch.setObjectName("pb_launch")
-        self.verticalLayout_7.addWidget(self.pb_launch)
+        self.horizontalLayout_8.addWidget(self.pb_launch)
+        self.verticalLayout_7.addWidget(self.frame_single_command)
         self.verticalLayout_2.addWidget(self.frame_7)
         self.frame_textbrowser = QtWidgets.QFrame(self.frame)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
@@ -334,10 +358,20 @@ class Ui_MainWindow(object):
         self.verticalLayout.setSpacing(10)
         self.verticalLayout.setObjectName("verticalLayout")
         self.toolBox = QtWidgets.QToolBox(self.frame_2)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.toolBox.sizePolicy().hasHeightForWidth())
+        self.toolBox.setSizePolicy(sizePolicy)
+        font = QtGui.QFont()
+        font.setFamily("黑体")
+        font.setPointSize(16)
+        self.toolBox.setFont(font)
+        self.toolBox.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         self.toolBox.setLineWidth(1)
         self.toolBox.setObjectName("toolBox")
         self.page = QtWidgets.QWidget()
-        self.page.setGeometry(QtCore.QRect(0, 0, 628, 547))
+        self.page.setGeometry(QtCore.QRect(0, 0, 628, 583))
         self.page.setObjectName("page")
         self.verticalLayout_8 = QtWidgets.QVBoxLayout(self.page)
         self.verticalLayout_8.setContentsMargins(0, 0, 0, 0)
@@ -406,7 +440,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_8.addWidget(self.groupBox_2)
         self.toolBox.addItem(self.page, "")
         self.page_2 = QtWidgets.QWidget()
-        self.page_2.setGeometry(QtCore.QRect(0, 0, 628, 547))
+        self.page_2.setGeometry(QtCore.QRect(0, 0, 628, 583))
         self.page_2.setObjectName("page_2")
         self.verticalLayout_11 = QtWidgets.QVBoxLayout(self.page_2)
         self.verticalLayout_11.setObjectName("verticalLayout_11")
@@ -516,7 +550,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_11.addWidget(self.groupBox_3)
         self.toolBox.addItem(self.page_2, "")
         self.page_3 = QtWidgets.QWidget()
-        self.page_3.setGeometry(QtCore.QRect(0, 0, 628, 547))
+        self.page_3.setGeometry(QtCore.QRect(0, 0, 628, 583))
         self.page_3.setObjectName("page_3")
         self.verticalLayout_9 = QtWidgets.QVBoxLayout(self.page_3)
         self.verticalLayout_9.setContentsMargins(0, 0, 0, 0)
@@ -563,6 +597,14 @@ class Ui_MainWindow(object):
         self.pb_open_file.setCursor(QtGui.QCursor(QtCore.Qt.PointingHandCursor))
         self.pb_open_file.setObjectName("pb_open_file")
         self.horizontalLayout_5.addWidget(self.pb_open_file)
+        self.pb_create_new_file = QtWidgets.QPushButton(self.frame_9)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(20)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.pb_create_new_file.sizePolicy().hasHeightForWidth())
+        self.pb_create_new_file.setSizePolicy(sizePolicy)
+        self.pb_create_new_file.setObjectName("pb_create_new_file")
+        self.horizontalLayout_5.addWidget(self.pb_create_new_file)
         self.pb_edit_file = QtWidgets.QPushButton(self.frame_9)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(20)
@@ -702,8 +744,9 @@ class Ui_MainWindow(object):
         self.pb_all_clear.setText(_translate("MainWindow", "All Clear"))
         self.lb_title.setText(_translate("MainWindow", "Pip_Conda_Manager"))
         self.pb_env.setText(_translate("MainWindow", "环境变量"))
-        self.pb_env_update.setText(_translate("MainWindow", "刷新"))
+        self.pb_restart.setText(_translate("MainWindow", "重启进程刷新"))
         self.pb_pip_upgrade.setText(_translate("MainWindow", "pip 更新"))
+        self.pb_env_manager.setText(_translate("MainWindow", "虚拟环境管理"))
         self.label.setText(_translate("MainWindow", "单行命令"))
         self.pb_launch.setText(_translate("MainWindow", "执行"))
         self.groupBox_2.setTitle(_translate("MainWindow", "依赖树"))
@@ -720,6 +763,7 @@ class Ui_MainWindow(object):
         self.toolBox.setItemText(self.toolBox.indexOf(self.page_2), _translate("MainWindow", "已安装包"))
         self.groupBox.setTitle(_translate("MainWindow", "批量安装导入"))
         self.pb_open_file.setText(_translate("MainWindow", "浏览文件"))
+        self.pb_create_new_file.setText(_translate("MainWindow", "新建文件"))
         self.pb_edit_file.setText(_translate("MainWindow", "编辑文件"))
         self.pb_package_invert.setText(_translate("MainWindow", "反选"))
         self.pb_package_update.setText(_translate("MainWindow", "刷新"))

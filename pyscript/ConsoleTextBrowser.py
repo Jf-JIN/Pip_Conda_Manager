@@ -14,10 +14,14 @@ class Console_TextBrowser(QWidget):
     6个按钮分别为: 向上, 向下, 增加字号, 减小字号, 重置字号, 清空
 
     用户可调用方法: 
+
         向 TextBrowser 中添加文字
+        ------
             append_text(text_on_textbrowser: str)-> None
+
         清空 TextBrowser 显示
-            clear(self) -> None
+        ------
+            clear() -> None
     '''
 
     def append_text(self, text_on_textbrowser: str) -> None:
@@ -81,6 +85,7 @@ class Console_TextBrowser(QWidget):
         控件初始化
         '''
         self.text_browser = QTextBrowser()
+        self.text_browser.setObjectName('TextBrowser_Console')
         self.text_browser.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.text_browser.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.text_browser.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -319,13 +324,3 @@ class Console_TextBrowser(QWidget):
         scrollbar = self.text_browser.verticalScrollBar()
         value = scrollbar.value()
         scrollbar.setValue(value+2)
-
-
-# if __name__ == "__main__":
-#     from PyQt5.QtWidgets import QApplication
-#     import sys
-#     app = QApplication(sys.argv)
-#     main_window = Console_TextBrowser()
-#     main_window.append_text(main_window._Console_TextBrowser__SVG_PB_INCREASE)
-#     main_window.show()
-#     sys.exit(app.exec_())
