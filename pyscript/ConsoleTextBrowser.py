@@ -321,11 +321,11 @@ class Console_TextBrowser(QWidget):
         scrollbar.setValue(value+2)
 
 
-if __name__ == "__main__":
-    from PyQt5.QtWidgets import QApplication
-    import sys
-    app = QApplication(sys.argv)
-    main_window = Console_TextBrowser()
-    main_window.append_text(main_window._Console_TextBrowser__SVG_PB_INCREASE)
-    main_window.show()
-    sys.exit(app.exec_())
+# if __name__ == "__main__":
+#     from PyQt5.QtWidgets import QApplication
+#     import sys
+#     app = QApplication(sys.argv)
+#     main_window = Console_TextBrowser()
+#     main_window.append_text(main_window._Console_TextBrowser__SVG_PB_INCREASE)
+#     main_window.show()
+#     sys.exit(app.exec_())
