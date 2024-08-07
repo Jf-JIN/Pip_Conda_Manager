@@ -1,7 +1,7 @@
 
 
 from PyQt5.QtGui import QCloseEvent, QKeySequence
-from PyQt5.QtWidgets import QDialog, QTextEdit, QToolBar, QAction, QVBoxLayout, QMessageBox
+from PyQt5.QtWidgets import QDialog, QTextEdit, QVBoxLayout, QMessageBox
 from PyQt5.QtCore import Qt
 
 
