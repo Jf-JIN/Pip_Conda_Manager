@@ -8,10 +8,11 @@ from PyQt5.QtGui import QTextDocument, QBrush, QColor
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QHBoxLayout, QMessageBox, QListWidgetItem, QFileDialog, QCheckBox, QLabel, QListWidget, QTreeWidget, QTreeWidgetItem, QMenu, QAction, QLineEdit, qApp
 
 from pip_manager_win_main_ui import *
-from pipInstall_file_Editor import *
+from QDialog_pipInstall_file_Editor import *
 from ConsoleTextBrowser import *
 from QThread_Environment_Variant import *
-from svg_data import *
+from QDialog_env_manual_add import *
+from Const_svg_data import *
 
 # APP_PATH = os.getcwd()
 APP_PATH = os.path.dirname(__file__)
@@ -57,7 +58,6 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
         self.pb_all_collapse.clicked.connect(self.tree_widget_all_collapse)
         self.pb_all_expand.clicked.connect(self.tree_widget_all_expand)
         self.pb_dependency_find.clicked.connect(self.find_in_treewidget_dependency)
-        # self.pb_restart.clicked.connect(self.restart)
 
         self.cb_package_all_select.stateChanged.connect(self.ckb_all_select)
         self.cb_package_all_select.clicked.connect(self.ckb_clicked)
@@ -78,11 +78,12 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
         '''
         界面初始化
         '''
+        self.setWindowTitle('Pip-Conda-Manager')
+        self.setWindowIcon(self.icon_setup(MAIN_ICON))
         self.setMinimumSize(800, 600)
         self.textbrowser_init()
         self.combo_init()
         self.pb_edit_file.hide()
-        self.pb_restart.hide()
         self.cb_use_module.setEnabled(False)
         self.cb_use_module.hide()
         self.frame_cb_command.hide()
@@ -171,7 +172,6 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
     def create_config(self):
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getSaveFileName(self, '新建 pipInstall 文件', APP_PATH, 'pipInstall Files (*.pipInstall)', options=options)
-        print(file_path)
         if file_path:
             with open(file_path, 'w', encoding='utf-8') as file:
                 text = '''# 注释符为'#', 无行间释符, 只有行内注释符\n# 例如: numpy   # numpy 是一个科学计算的第三方包\n'''
@@ -325,7 +325,6 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
         刷新List-Widget功能
         '''
         sender = self.sender()
-        print(sender)
         if sender == self.pb_package_update:
             self.list_widget_show(self.listWidget_package, self.get_config_content())
             self.cb_package_all_select.setChecked(False)
@@ -393,6 +392,10 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
             if not item or not os.path.exists(item.text(1)):
                 return
             subprocess.Popen(['explorer', '/select,', item.text(1)], creationflags=subprocess.CREATE_NO_WINDOW)
+
+        def remove_env(treewidget: QTreeWidget, item):
+            index = treewidget.indexOfTopLevelItem(item)
+            treewidget.takeTopLevelItem(index)
         item = self.sender().itemAt(pos)
         menu_context = QMenu(self.treeWidget_env)
         action_open = QAction('打开文件所在位置', self)
@@ -400,6 +403,12 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
         action_open.triggered.connect(lambda: open_env_folder(item))
         menu_context.addAction(action_open)
         menu_context.setStyleSheet('color: rgb(19, 24, 66)')
+        if item.text(0).startswith('+'):
+            action_remove = QAction('从列表中移除此环境', self)
+            action_remove.setIcon(self.icon_setup(REMOVE_ICON))
+            action_remove.triggered.connect(lambda: remove_env(self.treeWidget_env, item))
+            menu_context.addAction(action_remove)
+
         menu_context.exec_(self.sender().mapToGlobal(pos))
 
     def context_menu_treewidget_dependency_init(self, pos):
