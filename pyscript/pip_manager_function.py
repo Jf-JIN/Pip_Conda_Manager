@@ -1,7 +1,8 @@
 
 import shutil
+import pprint
 
-from pip_virtual_environment_manager import *
+from QDialog_pip_virtual_environment_manager import *
 from pip_manager_splash_screen import *
 from pip_manager_win_mainUI import *
 from QThread_Conda_Env import *
@@ -26,6 +27,7 @@ class Manager_Function(Manager_UI):
         self.indent = ''
         self.indent_sign = 0
         # self.stop = False
+        self.env_dict = {}
         self.flag_has_virtual_env = False
 
     def signal_connections(self):
@@ -36,6 +38,7 @@ class Manager_Function(Manager_UI):
         self.pb_env_manager.clicked.connect(self.virtual_env_manager)
         self.pb_single_command_launch.clicked.connect(self.launch_single_command)
         self.pb_package_install.clicked.connect(self.install_package_list)
+        self.pb_env_add.clicked.connect(self.add_env)
         self.le_single_command.returnPressed.connect(self.launch_single_command)
         self.cb_use_path.clicked.connect(self.display_cb_use_module)
 
@@ -392,6 +395,24 @@ class Manager_Function(Manager_UI):
             return
         env_path = self.treeWidget_env.currentItem().text(1)
         print(env_path)
+
+    def add_env(self):
+        dialog = Env_Manual_Add()
+        dialog.exec_()
+        env, env_path = dialog.get_input()
+        if not env:
+            return
+        env_name = os.path.basename(os.path.dirname(env_path))
+        if env not in self.env_dict:
+            self.env_dict[env] = []
+        self.env_dict[env].append([env_name, env_path])
+        pprint.pprint(self.env_dict)
+        voll_tip_text = f'+({env}){env_name}   {env_path}'
+        item = QTreeWidgetItem(self.treeWidget_env)
+        item.setText(0, f'+({env}){env_name}')
+        item.setText(1, env_path)
+        item.setToolTip(0, voll_tip_text)
+        item.setToolTip(1, voll_tip_text)
 
 
 if __name__ == "__main__":
