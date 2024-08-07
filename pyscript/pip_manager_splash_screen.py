@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import QSplashScreen, QLabel, QVBoxLayout, QHBoxLayout, QSi
 from PyQt5.QtGui import QPixmap, QColor
 from PyQt5.QtCore import Qt, QByteArray
 
-from svg_data import *
+from Const_svg_data import *
 
 
 class Manager_Splash_Screen(QSplashScreen):
