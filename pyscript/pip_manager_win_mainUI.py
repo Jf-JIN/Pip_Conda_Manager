@@ -2,16 +2,16 @@
 import os
 import sys
 import time
-import math
 
 from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtGui import QTextDocument
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QHBoxLayout, QMessageBox, QListWidgetItem, QFileDialog, QCheckBox, QLabel, QListWidget, QTreeWidget, qApp
+from PyQt5.QtGui import QTextDocument, QBrush, QColor
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QHBoxLayout, QMessageBox, QListWidgetItem, QFileDialog, QCheckBox, QLabel, QListWidget, QTreeWidget, QTreeWidgetItem, QMenu, QAction, QLineEdit, qApp
 
 from pip_manager_win_main_ui import *
 from pipInstall_file_Editor import *
 from ConsoleTextBrowser import *
 from QThread_Environment_Variant import *
+from svg_data import *
 
 # APP_PATH = os.getcwd()
 APP_PATH = os.path.dirname(__file__)
@@ -39,6 +39,9 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
         self.check_box_installed_list = []
         self.config_list = []
         self.python_folder_path = ''
+        self.flag_trackback = True
+        self.dependency_version_width = 130
+        self.flag_init = True
 
     def signal_connections(self):
         '''
@@ -53,26 +56,53 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
         self.pb_package_update.clicked.connect(self.refresh_list)
         self.pb_all_collapse.clicked.connect(self.tree_widget_all_collapse)
         self.pb_all_expand.clicked.connect(self.tree_widget_all_expand)
+        self.pb_dependency_find.clicked.connect(self.find_in_treewidget_dependency)
         # self.pb_restart.clicked.connect(self.restart)
 
         self.cb_package_all_select.stateChanged.connect(self.ckb_all_select)
         self.cb_package_all_select.clicked.connect(self.ckb_clicked)
 
         self.le_package_path.textChanged.connect(self.can_pb_edit_enable)
+        self.le_dependency_find.returnPressed.connect(self.find_in_treewidget_dependency)
+        self.le_dependency_find.textChanged.connect(lambda: self.clear_find_result_in_treewidget(self.treeWidget_dependency))
+        self.le_installed_find.returnPressed.connect(self.find_in_listwidget_installed)
+        self.le_installed_find.textChanged.connect(lambda: self.clear_find_result_in_listwidget(self.le_installed_find, self.listWidget_installed))
+        self.le_package_find.returnPressed.connect(self.find_in_listwidget_package)
+        self.le_package_find.textChanged.connect(lambda: self.clear_find_result_in_listwidget(self.le_package_find, self.listWidget_package))
+
+        self.treeWidget_env.customContextMenuRequested.connect(self.context_menu_treewidget_env_init)
+        self.treeWidget_dependency.customContextMenuRequested.connect(self.context_menu_treewidget_dependency_init)
+        # self.treeWidget_env.customContextMenuRequested.connect(self.open_config)
 
     def ui_init(self):
         '''
         界面初始化
         '''
+        self.setMinimumSize(800, 600)
         self.textbrowser_init()
         self.combo_init()
         self.pb_edit_file.hide()
         self.pb_restart.hide()
+        self.cb_use_module.setEnabled(False)
+        self.cb_use_module.hide()
+        self.frame_cb_command.hide()
+        self.le_dependency_find.setClearButtonEnabled(True)
+        self.le_installed_find.setClearButtonEnabled(True)
+        self.le_package_find.setClearButtonEnabled(True)
+        self.le_package_path.setClearButtonEnabled(True)
+        self.le_single_command.setClearButtonEnabled(True)
+        self.treeWidget_env.setColumnCount(2)
+        self.treeWidget_env.setColumnWidth(0, 200)
         self.treeWidget_env.header().setVisible(False)
-        self.treeWidget_dependency.header().setVisible(False)
         self.treeWidget_env.setSelectionMode(QTreeWidget.SingleSelection)
-        # for index in range(self.toolBox.count()):
-        #     self.toolBox.widget(index).setFixedHeight(30)
+        self.treeWidget_env.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.treeWidget_dependency.header().setVisible(True)
+        self.treeWidget_dependency.setColumnCount(3)
+        self.treeWidget_dependency.setColumnWidth(0, 350)
+        self.treeWidget_dependency.setColumnWidth(1, self.dependency_version_width)
+        self.treeWidget_dependency.setColumnWidth(2, self.dependency_version_width)
+        self.treeWidget_dependency.setHeaderLabels(['包名', '当前版本', '要求版本'])
+        self.treeWidget_dependency.setContextMenuPolicy(Qt.CustomContextMenu)
 
     def textbrowser_init(self):
         '''
@@ -89,6 +119,19 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
         Combobox 初始化
         '''
         self.cbb_install_env.setPlaceholderText(' ')
+
+    def resizeEvent(self, event):
+        self.resize_tree_widget_dependency()
+        super().resizeEvent(event)
+
+    def resize_tree_widget_dependency(self):
+        dependency_width = self.treeWidget_dependency.width() - 2*self.dependency_version_width
+        if self.flag_init:  # 判断如果是第一次改变大小，即初始化，则忽略重置大小
+            self.flag_init = False
+            return
+        if dependency_width < self.dependency_version_width:
+            dependency_width = self.dependency_version_width
+        self.treeWidget_dependency.setColumnWidth(0, dependency_width)
 
     def add_item_of_checkbox_after_checking_repeat(self, content):
         '''
@@ -176,7 +219,7 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
                 widget = QWidget()
                 label = QLabel(i.split('#')[0].strip())
                 label.setWordWrap(True)
-                label.setStyleSheet("color: rgb(19, 24, 66);")
+                label.setStyleSheet('color: rgb(19, 24, 66);')
                 label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
                 height = self.get_adjust_label_height(label)
                 check_box = QCheckBox()
@@ -191,7 +234,7 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
                     complement = '# ' + i.split('#')[1].strip()
                     label_complement = QLabel(complement)
                     label_complement.setWordWrap(True)
-                    label_complement.setStyleSheet("color: rgb(19, 24, 66);")
+                    label_complement.setStyleSheet('color: rgb(19, 24, 66);')
                     label_complement.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
                     height = max(height, self.get_adjust_label_height(label_complement))
                     layout.addWidget(label_complement, stretch=100)
@@ -315,9 +358,15 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
         self.textbrowser.clear()
         self.le_package_path.clear()
         self.le_single_command.clear()
-        self.cbb_install_env.clear()
-        self.listWidget_package.clear()
+        self.le_dependency_find.clear()
+        self.le_installed_find.clear()
+        self.le_package_find.clear()
         self.cb_package_all_select.setChecked(False)
+        self.treeWidget_env.clearSelection()
+        self.cbb_install_env.setCurrentIndex(-1)
+        self.treeWidget_dependency.clear()
+        self.listWidget_package.clear()
+        self.frame_cb_command.hide()
 
     def open_enviroment_variant(self):
         '''
@@ -339,12 +388,125 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
         pixmap.loadFromData(QByteArray(icon_code.encode()))
         return QIcon(pixmap)
 
+    def context_menu_treewidget_env_init(self, pos):
+        def open_env_folder(item):
+            if not item or not os.path.exists(item.text(1)):
+                return
+            subprocess.Popen(['explorer', '/select,', item.text(1)], creationflags=subprocess.CREATE_NO_WINDOW)
+        item = self.sender().itemAt(pos)
+        menu_context = QMenu(self.treeWidget_env)
+        action_open = QAction('打开文件所在位置', self)
+        action_open.setIcon(self.icon_setup(OPEN_FOLDER_ICON))
+        action_open.triggered.connect(lambda: open_env_folder(item))
+        menu_context.addAction(action_open)
+        menu_context.setStyleSheet('color: rgb(19, 24, 66)')
+        menu_context.exec_(self.sender().mapToGlobal(pos))
+
+    def context_menu_treewidget_dependency_init(self, pos):
+        def expand_collapse_all(item: QTreeWidgetItem, status: bool):
+            item.setExpanded(status)
+            for index in range(item.childCount()):
+                expand_collapse_all(item.child(index), status)
+        item: QTreeWidgetItem = self.sender().itemAt(pos)
+        key_menu = QMenu(self.treeWidget_dependency)
+        action_expand = QAction('展开当前', self)
+        action_expand.setIcon(self.icon_setup(EXPAND_ICON))
+        action_expand.triggered.connect(lambda: expand_collapse_all(item, True))
+        key_menu.addAction(action_expand)
+        action_collapse = QAction('折叠当前', self)
+        action_collapse.setIcon(self.icon_setup(COLLAPSE_ICON))
+        action_collapse.triggered.connect(lambda: expand_collapse_all(item, False))
+        key_menu.addAction(action_collapse)
+        key_menu.setStyleSheet('color: rgb(19, 24, 66)')
+        key_menu.exec_(self.sender().mapToGlobal(pos))
+
+    def find_in_treewidget(self, treewidget: QTreeWidget, content: str):
+        def highlight_item(item: QTreeWidgetItem):
+            item.setBackground(0, QBrush(QColor('#B4E380')))  # Highlight the item with yellow background
+            item.setSelected(True)
+
+        def clear_highlighting(treewidget):
+            for item in treewidget.findItems('', Qt.MatchContains | Qt.MatchRecursive):
+                item: QTreeWidgetItem
+                item.setBackground(0, QBrush(QColor('transparent')))
+                item.setSelected(False)
+
+        def search_items(item: QTreeWidgetItem, content):
+            for index in range(item.childCount()):
+                child = item.child(index)
+                if content in child.text(0).lower():
+                    highlight_item(child)
+                search_items(child, content)
+        clear_highlighting(treewidget)
+        search_items(treewidget.invisibleRootItem(), content)
+
+    def clear_find_result_in_treewidget(self, treewidget: QTreeWidget):
+        if self.le_dependency_find.text() and self.le_dependency_find.text() != '':
+            return
+        for item in treewidget.findItems('', Qt.MatchContains | Qt.MatchRecursive):
+            item: QTreeWidgetItem
+            item.setBackground(0, QBrush(QColor('transparent')))
+            item.setSelected(False)
+
+    def find_in_treewidget_dependency(self):
+        content = self.le_dependency_find.text().lower()
+        if not content or content == '':
+            return
+        self.find_in_treewidget(self.treeWidget_dependency, content)
+
+    def find_in_listwidget_installed(self):
+        content = self.le_installed_find.text().lower()
+        if not content or content == '':
+            return
+        count = self.listWidget_installed.count()
+        for index in range(count):
+            item = self.listWidget_installed.item(index)
+            if content in item.text().lower():
+                item.setBackground(QBrush(QColor('#B4E380')))
+            else:
+                item.setBackground(QBrush(QColor('transparent')))
+
+    def find_in_listwidget_package(self):
+        content = self.le_package_find.text().lower()
+        if not content or content == '':
+            return
+        count = self.listWidget_package.count()
+        for index in range(count):
+            item = self.listWidget_package.item(index)
+            widget = self.listWidget_package.itemWidget(item)
+            label: QLabel = widget.findChild(QLabel)
+            if content in label.text().lower():
+                item.setBackground(QBrush(QColor('#B4E380')))
+            else:
+                item.setBackground(QBrush(QColor('transparent')))
+
+    def clear_find_result_in_listwidget(self, line_edit: QLineEdit, listwidget: QListWidget):
+        if line_edit.text() and line_edit.text() != '':
+            return
+        count = listwidget.count()
+        for index in range(count):
+            item = listwidget.item(index)
+            item.setBackground(QBrush(QColor('transparent')))
+
+    def get_selected_item_package_list(self) -> list:
+        command_list = []
+        count = self.listWidget_package.count()
+        for index in range(count):
+            item = self.listWidget_package.item(index)
+            widget = self.listWidget_package.itemWidget(item)
+            checkbox: QCheckBox = widget.findChild(QCheckBox)
+            label: QLabel = widget.findChild(QLabel)
+            if checkbox.isChecked():
+                text = label.text()
+                command_list.append(text)
+        return command_list
+
     # def restart(self):
     #     self.hide()
     #     qApp.exit(RESTART_EXIT_CODE)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app = QApplication(sys.argv)
     exe = Manager_UI()
     exe.show()
