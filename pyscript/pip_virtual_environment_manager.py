@@ -8,7 +8,6 @@ from PyQt5.QtGui import QCursor
 from PyQt5.QtWidgets import QDialog, QTreeWidget, QComboBox, QVBoxLayout, QTreeWidgetItem, QLineEdit, QFrame, QLabel, QMessageBox
 from PyQt5.QtCore import Qt, QEventLoop
 
-import subprocess
 import shutil
 import os
 
