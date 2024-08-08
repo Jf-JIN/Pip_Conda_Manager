@@ -76,7 +76,7 @@ class Manager_Function(Manager_UI):
                         self.cbb_install_env.addItem(name + env_item_list[0])
                         if env_name == 'python' and env_item_list[0] == 'WindowsApps':
                             item.setIcon(0, self.icon_setup(WARNING_ICON))
-                            voll_tip_text = f'无法对此 Python 进行操作\n{name} {env_item_list[0]}   {env_item_list[1]}'
+                            voll_tip_text = f'{self.language.windowsapp_tooltip}\n{name} {env_item_list[0]}   {env_item_list[1]}'
                             item.setToolTip(0, voll_tip_text)
                             item.setToolTip(1, voll_tip_text)
             for env_name, env_list in self.dict_env_add.items():
@@ -96,7 +96,7 @@ class Manager_Function(Manager_UI):
             current_splash_flags = self.splash.windowFlags()
             self.splash.setWindowFlags(current_splash_flags & ~Qt.WindowStaysOnTopHint)
             self.splash.show()
-            QMessageBox.information(None, '提示', f'环境加载错误, 请检查 Python 环境<br>{e}')
+            QMessageBox.information(None, self.language.information, f'{self.language.display_tree_env_error}<br>{e}')
             self.splash.setWindowFlags(current_splash_flags | Qt.WindowStaysOnTopHint)
             self.splash.show()
             # sys.exit()
@@ -166,11 +166,11 @@ class Manager_Function(Manager_UI):
 
     def get_env_add_dict(self):
         mark, env_add_dict = self.env_config_manager.open_config()
-        if mark == '-1':
-            QMessageBox.information(None, '提示', '请检查 .config_env 文件, 文件已被篡改, 数据格式错误')
-            return
-        elif mark == '0':
-            return
+        if mark == -1:
+            QMessageBox.information(None, self.language.information, self.language.get_config_env_error)
+            return {}
+        elif mark == 0:
+            return {}
         temp = {}
         flag_rewrite = False
         for key, env_add_list in env_add_dict.items():
@@ -186,6 +186,8 @@ class Manager_Function(Manager_UI):
         return temp
 
     def take_all_path(self, env_dict: dict):
+        if not env_dict:
+            return {}
         temp = []
         for env_list in env_dict.values():
             for env_element in env_list:
@@ -245,7 +247,7 @@ class Manager_Function(Manager_UI):
             current_splash_flags = self.splash.windowFlags()
             self.splash.setWindowFlags(current_splash_flags & ~Qt.WindowStaysOnTopHint)
             self.splash.show()
-            QMessageBox.information(None, '提示', f'无法自动加载 Python 安装路径, 请检查 python 安装路径<br>{e}')
+            QMessageBox.information(None, self.language.information, f'{self.language.load_python_error}<br>{e}')
             self.splash.setWindowFlags(current_splash_flags | Qt.WindowStaysOnTopHint)
             self.splash.show()
 
@@ -285,7 +287,7 @@ class Manager_Function(Manager_UI):
         except Exception as e:
             if self.flag_trackback:
                 e = traceback.format_exc()
-            QMessageBox.information(None, '提示', f'读取 Conda 错误<br>{e}')
+            QMessageBox.information(None, self.language.information, f'{self.language.load_conda_error}<br>{e}')
 
     def upgrade_pip(self):
         '''
@@ -297,7 +299,7 @@ class Manager_Function(Manager_UI):
             python_exe_path = current_item.text(1)
             if pip_env == 'WindowsApps':
                 return
-            self.pip_upgrade_thread = QThread_pip_update(python_exe_path, pip_env)
+            self.pip_upgrade_thread = QThread_pip_update(self, python_exe_path, pip_env)
             self.pip_upgrade_thread.signal_textbrowser.connect(self.textbrowser.append_text)
             self.pip_upgrade_thread.start()
 
@@ -306,7 +308,7 @@ class Manager_Function(Manager_UI):
         打开虚拟环境管理界面
         '''
         if not self.flag_has_virtual_env:
-            QMessageBox.information(None, '提示', '未检测到虚拟环境')
+            QMessageBox.information(None, self.language.information, self.language.virtual_env_not_found)
             return
         env_manager = Virtual_Environment_Manager(self, self.dict_env)
         env_manager.exec_()
@@ -324,7 +326,7 @@ class Manager_Function(Manager_UI):
             command = '-m ' + command
         if self.cb_use_path.isChecked() and self.treeWidget_env.currentItem():
             env_path_list = [self.treeWidget_env.currentItem().text(0), self.treeWidget_env.currentItem().text(1)]
-        self.thread_command = QThread_Single_Command(command, env_path_list)
+        self.thread_command = QThread_Single_Command(self, command, env_path_list)
         self.thread_command.signal_textbrowser.connect(self.textbrowser.append_text)
         self.thread_command.start()
 
@@ -406,9 +408,7 @@ class Manager_Function(Manager_UI):
         except Exception as e:
             if self.flag_trackback:
                 e = traceback.format_exc()
-                print(e)
-            # self.textbrowser.append_text(e)
-            self.textbrowser.append_text(f'{self.treeWidget_env.currentItem().text(0)}: 未安装pipdeptree')
+                self.textbrowser.append_text(e)
 
     def update_tree_dependency(self):
         '''
@@ -416,7 +416,7 @@ class Manager_Function(Manager_UI):
         '''
         self.treeWidget_dependency.clear()
         tree_widget_env_item = self.treeWidget_env.currentItem()
-        self.thread_dependency = QThread_Pipdeptree(tree_widget_env_item)
+        self.thread_dependency = QThread_Pipdeptree(self, tree_widget_env_item)
         self.thread_dependency.signal_deptree_line.connect(self.build_dependency_tree_on_tree_widget)
         self.thread_dependency.signal_textbrowser.connect(self.textbrowser.append_text)
         self.thread_dependency.start()
@@ -425,15 +425,14 @@ class Manager_Function(Manager_UI):
         selected_item = self.get_selected_item_package_list()
         env_name = self.cbb_install_env.currentText()
         if len(selected_item) < 1:
-            QMessageBox.information(None, '提示', '请选择安装模块/包')
+            QMessageBox.information(None, self.language.information, self.language.please_select_module)
             return
         elif not env_name or env_name == '':
-            QMessageBox.information(None, '提示', '请选择安装环境')
+            QMessageBox.information(None, self.language.information, self.language.please_select_install_env)
             return
         elif env_name == 'WindowsApps':
             return
         env_path = self.treeWidget_env.currentItem().text(1)
-        print(env_path)
 
 
 if __name__ == "__main__":

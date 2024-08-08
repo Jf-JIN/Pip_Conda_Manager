@@ -1,6 +1,7 @@
 
 from QThread_Conda_Env import *
 from ConsoleTextBrowser import *
+from language_manager import *
 from QThread_Virtual_Environment_Manager import *
 
 
@@ -16,6 +17,8 @@ class Virtual_Environment_Manager(QDialog):
     def __init__(self, parent, env_dict) -> None:
         super().__init__(parent)
         self.env_dict: dict = env_dict
+        self.parent_obj = parent
+        self.language: Language_Manager = self.parent_obj.language
         self.__parameter_init()
         self.__ui_init()
         self.__signal_connections()
@@ -32,7 +35,7 @@ class Virtual_Environment_Manager(QDialog):
 
     def __ui_init(self):
         self.setWindowModality(Qt.ApplicationModal)
-        self.setWindowTitle('虚拟环境管理')
+        self.setWindowTitle(self.language.dialog_virtual_env_manager_title)
         self.resize(800, 600)
         self.tree_widget = QTreeWidget(self)
         self.tree_widget.setHeaderHidden(True)
@@ -46,14 +49,14 @@ class Virtual_Environment_Manager(QDialog):
         for i in [self.le_env_name, self.le_py_version]:
             i.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
             i.setCursor(QCursor(Qt.IBeamCursor))
-        self.lb_env_name = QLabel('新环境名')
-        self.lb_py_version = QLabel('Python版本')
+        self.lb_env_name = QLabel(self.language.new_env_name)
+        self.lb_py_version = QLabel(self.language.python_version)
         self.text_browser = Console_TextBrowser(default_font_family='黑体', default_font_size=16)
         self.text_browser.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.pb_create_env = QPushButton('新建环境')
-        self.pb_export_env = QPushButton('导出环境')
-        self.pb_update_env = QPushButton('更新环境')
-        self.pb_remove_env = QPushButton('删除环境')
+        self.pb_create_env = QPushButton(self.language.create_env)
+        self.pb_export_env = QPushButton(self.language.export_env)
+        self.pb_update_env = QPushButton(self.language.update_env)
+        self.pb_remove_env = QPushButton(self.language.remove_env)
         for i in [self.pb_create_env, self.pb_export_env, self.pb_update_env, self.pb_remove_env]:
             i.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
             i.setCursor(QCursor(Qt.PointingHandCursor))
@@ -156,7 +159,7 @@ class Virtual_Environment_Manager(QDialog):
         current_item = self.tree_widget.currentItem()
         if not current_item:
             return
-        confirm_dialog_result = QMessageBox.question(self, '确认删除', '删除动作不可撤回, 是否进行删除?',  QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        confirm_dialog_result = QMessageBox.question(self, self.language.remove_confirm, self.language.env_remove_hint,  QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if confirm_dialog_result == QMessageBox.No:
             return
         tree_item_text = current_item.text(0)
@@ -171,7 +174,7 @@ class Virtual_Environment_Manager(QDialog):
         current_item = self.tree_widget.currentItem()
         if not current_item:
             return
-        confirm_dialog_result = QMessageBox.question(self, '确认更新', '更新时间比较长, 是否进行更新?',  QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        confirm_dialog_result = QMessageBox.question(self, self.language.update_confirm, self.language.env_update_hint,  QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if confirm_dialog_result == QMessageBox.No:
             return
         tree_item_text = current_item.text(0)

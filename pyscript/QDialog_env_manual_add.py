@@ -2,6 +2,7 @@
 
 from QThread_Conda_Env import *
 from ConsoleTextBrowser import *
+from language_manager import *
 from QThread_Virtual_Environment_Manager import *
 
 
@@ -13,8 +14,10 @@ from pathlib import Path
 
 
 class Env_Manual_Add(QDialog):
-    def __init__(self) -> None:
+    def __init__(self, parent) -> None:
         super().__init__()
+        self.parent_obj = parent
+        self.language: Language_Manager = self.parent_obj.language
         self.__parameter_init()
         self.__ui_init()
         self.__signal_connections()
@@ -33,7 +36,7 @@ class Env_Manual_Add(QDialog):
     def __ui_init(self):
         self.setWindowModality(Qt.ApplicationModal)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
-        self.setWindowTitle('手动添加环境')
+        self.setWindowTitle(self.language.dialog_add_env_title)
         self.resize(400, 100)
         self.setFixedHeight(100)
         self.setMinimumWidth(300)
@@ -41,11 +44,11 @@ class Env_Manual_Add(QDialog):
         self.le_env_path.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.cbb_env = QComboBox()
         self.cbb_env.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.pb_env_path = QPushButton('浏览')
+        self.pb_env_path = QPushButton(self.language.browser)
         self.le_env_path.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.pb_add = QPushButton('添加')
+        self.pb_add = QPushButton(self.language.add)
         self.pb_add.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.pb_cancel = QPushButton('取消')
+        self.pb_cancel = QPushButton(self.language.cancel)
         self.pb_cancel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         frame = QFrame()
         layout = QVBoxLayout(self)
@@ -57,9 +60,9 @@ class Env_Manual_Add(QDialog):
             i.setContentsMargins(0, 0, 0, 0)
             i.setSpacing(6)
         layout.setContentsMargins(5, 5, 5, 5)
-        layout_cbb.addWidget(QLabel('环境类型'))
+        layout_cbb.addWidget(QLabel(self.language.env_type))
         layout_cbb.addWidget(self.cbb_env)
-        layout_le.addWidget(QLabel('Python路径'))
+        layout_le.addWidget(QLabel(self.language.python_path))
         layout_le.addWidget(self.le_env_path, stretch=100)
         layout_le.addWidget(self.pb_env_path)
         layout_pb.addItem(QSpacerItem(100, 10, QSizePolicy.Expanding, QSizePolicy.Expanding))
@@ -86,15 +89,15 @@ class Env_Manual_Add(QDialog):
         env = self.cbb_env.currentText()
         env_path = self.le_env_path.text()
         if not env or env == '':
-            QMessageBox.information(None, '提示', '请选择环境类型')
+            QMessageBox.information(None, self.language.information, self.language.please_select_env_tpye)
         if not env_path or env_path == '':
-            QMessageBox.information(None, '提示', '请输入 Python 解释器路径')
+            QMessageBox.information(None, self.language.information, self.language.please_input_python_path)
         return env, env_path.replace('/', '\\')
 
     def __on_add_clicked(self):
         env, env_path = self.__get_env()
         if os.path.basename(env_path) != 'python.exe':
-            QMessageBox.information(None, '提示', '请检查 Python 解释器路径, 请输入 python.exe 路径')
+            QMessageBox.information(None, self.language.information, self.language.please_check_python_path)
             return
         if env and env_path:
             self.__env = env
@@ -108,7 +111,7 @@ class Env_Manual_Add(QDialog):
 
     def __view_path(self):
         options = QFileDialog.Options()
-        file_path, _ = QFileDialog.getOpenFileName(self, '添加 python 解释器路径', str(self.__root_dir), 'Python 解释器 (python.exe)', options=options)
+        file_path, _ = QFileDialog.getOpenFileName(self, self.language.add_python_pathS, str(self.__root_dir), 'Python EXE (python.exe)', options=options)
         if file_path:
             self.le_env_path.setText(str(file_path))
 

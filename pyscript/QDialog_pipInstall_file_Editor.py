@@ -4,11 +4,14 @@ from PyQt5.QtGui import QCloseEvent, QKeySequence
 from PyQt5.QtWidgets import QDialog, QTextEdit, QVBoxLayout, QMessageBox
 from PyQt5.QtCore import Qt
 
+from language_manager import *
+
 
 class pipInstall_Editor(QDialog):
     def __init__(self, parent, file_path) -> None:
         super().__init__(parent)
         self.file_path = file_path
+        self.language: Language_Manager = parent.language
         self.__parameter_init()
         self.__signal_connections()
         self.__ui_init()
@@ -50,7 +53,7 @@ class pipInstall_Editor(QDialog):
     def __save_file(self):
         text = self.text_edit.toPlainText()
         if '''# 注释符为'#', 无行间释符, 只有行内注释符\n''' not in text:
-            text = "# 注释符为'#', 无行间释符, 只有行内注释符\n# 例如: numpy   # numpy 是一个科学计算的第三方包\n" + text
+            text = "# 注释符为'#', 无行间释符, 只有行内注释符\n# 例如: numpy   # numpy 是一个科学计算的第三方包\n\n# The comment symbol is '#', no interline comment symbol, only intraline comment symbol\n# For example: numpy # numpy is a third-party package for scientific computing\n\n" + text
 
         with open(self.file_path, 'w', encoding='utf-8') as file:
             file.write(text)
@@ -63,8 +66,8 @@ class pipInstall_Editor(QDialog):
         if self.text_edit.document().isModified() and self.__flag_text_changed:
             reply = QMessageBox.question(
                 self,
-                '确认保存',
-                '您有未保存的更改。是否要保存这些更改？',
+                self.language.save_confirm,
+                self.language.file_save_hint,
                 QMessageBox.Save | QMessageBox.Discard | QMessageBox.Cancel,
                 QMessageBox.Save
             )

@@ -29,8 +29,6 @@ class Manager_Splash_Screen(QSplashScreen):
         layout_label.addWidget(self.label)
         layout_label.addItem(space)
         layout.addLayout(layout_label)
-
-        self.showMessage('加载 pip 环境', Qt.AlignBottom | Qt.AlignCenter, QColor(19, 24, 66))
         self.show()
 
     def pixmap_setup(self, icon_code: str):

@@ -1,19 +1,21 @@
 
 
 from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtWidgets import QTreeWidgetItem
 
 import os
 import threading
 import subprocess
 
-from PyQt5.QtWidgets import QTreeWidgetItem
+from language_manager import *
 
 
 class QThread_pip_update(QThread):
     signal_textbrowser = pyqtSignal(str)
 
-    def __init__(self, python_exe_path, pip_environment):
+    def __init__(self, parent, python_exe_path, pip_environment):
         super().__init__()
+        self.language: Language_Manager = parent.language
         self.python_exe_path = python_exe_path
         if '(' in pip_environment:
             self.pip_environment: str = pip_environment
@@ -33,7 +35,7 @@ class QThread_pip_update(QThread):
             name = self.pip_environment
         else:
             name = self.python_version
-        self.signal_textbrowser.emit(f"\n__________  pip更新 {name} 已完成操作 __________\n\n")
+        self.signal_textbrowser.emit(f'\n__________  {self.language.pip_update} {name} {self.language.operation_finished} __________\n\n')
 
     def run(self):
         if self.pip_environment:
@@ -51,14 +53,15 @@ class QThread_pip_update(QThread):
             self.threading_read = threading.Thread(target=self.read_output)
             self.threading_read.start()
         except subprocess.CalledProcessError as e:
-            self.signal_textbrowser.emit(f'__________ pip 安装/更新/卸载 操作失败: {e} __________\n')
+            self.signal_textbrowser.emit(f'__________ pip {self.language.operation_error}: {e} __________\n')
 
 
 class QThread_pip_install(QThread):
     signal_textbrowser = pyqtSignal(str)
 
-    def __init__(self, python_folder_path, python_version, install_flag, config_list):
+    def __init__(self, parent, python_folder_path, python_version, install_flag, config_list):
         super().__init__()
+        self.language: Language_Manager = parent.language
         self.python_folder_path = python_folder_path
         self.python_version = python_version
         self.install_flag = install_flag
@@ -71,7 +74,7 @@ class QThread_pip_install(QThread):
                 break
             if output_line:
                 self.signal_textbrowser.emit(output_line.strip())
-        self.signal_textbrowser.emit(f"\n__________  {item}  已完成操作 __________\n\n")
+        self.signal_textbrowser.emit(f'\n__________  {item}  {self.language.operation_finished} __________\n\n')
 
     def run(self):
         for item in self.config_list:
@@ -84,15 +87,16 @@ class QThread_pip_install(QThread):
                 self.thread = threading.Thread(target=self.read_output(item))
                 self.thread.start()
             except subprocess.CalledProcessError as e:
-                self.signal_textbrowser.emit(f"__________ {item} 操作失败: {e} __________\n")
+                self.signal_textbrowser.emit(f'__________ {item} {self.language.operation_error}: {e} __________\n')
 
 
 class QThread_Single_Command(QThread):
     signal_textbrowser = pyqtSignal(str)
     signal_finished = pyqtSignal()
 
-    def __init__(self, command, env_path_list=None):
+    def __init__(self, parent, command, env_path_list=None):
         super().__init__()
+        self.language: Language_Manager = parent.language
         self.ori_command = command
         self.command = command
         if env_path_list:
@@ -110,7 +114,7 @@ class QThread_Single_Command(QThread):
             if output_line:
                 self.signal_textbrowser.emit(output_line.strip())
                 # print(repr(output_line))
-        self.signal_textbrowser.emit(f"\n__________  已完成命令操作 __________\n\n")
+        self.signal_textbrowser.emit(f'\n__________  {self.language.operation_finished} __________\n\n')
         self.signal_finished.emit()
 
     def run(self):
@@ -120,7 +124,7 @@ class QThread_Single_Command(QThread):
             self.thread_read = threading.Thread(target=self.read_output)
             self.thread_read.start()
         except subprocess.CalledProcessError as e:
-            self.signal_textbrowser.emit(f"__________ 操作失败: {e} __________\n")
+            self.signal_textbrowser.emit(f'__________ {self.language.operation_error}: {e} __________\n')
 
 
 class QThread_Pipdeptree(QThread):
@@ -128,8 +132,9 @@ class QThread_Pipdeptree(QThread):
     signal_textbrowser = pyqtSignal(str)
     signal_finished = pyqtSignal()
 
-    def __init__(self, tree_item):
+    def __init__(self, parent, tree_item):
         super().__init__()
+        self.language: Language_Manager = parent.language
         self.tree_item: QTreeWidgetItem = tree_item
         text_0 = self.tree_item.text(0)
         text_1 = self.tree_item.text(1)
@@ -156,4 +161,4 @@ class QThread_Pipdeptree(QThread):
             self.thread_read = threading.Thread(target=self.read_output)
             self.thread_read.start()
         except subprocess.CalledProcessError as e:
-            self.signal_textbrowser.emit(f"__________ 操作失败: {e} __________\n")
+            self.signal_textbrowser.emit(f'__________ {self.language.operation_error}: {e} __________\n')

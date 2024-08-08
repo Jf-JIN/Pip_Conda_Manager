@@ -4,25 +4,42 @@ import json
 import copy
 
 DEFAULT_SETTING = {
-    'language': [str, 'english']
+    'language': [str, 'default']
 }
 
 
 class Setting_Manager():
     def __init__(self, exe_folder_path) -> None:
-        self.exe_folder_path = exe_folder_path
-        self.setting_path = os.path.join(self.exe_folder_path, '.setting')
-        self.setting_data = self.__check_file()
+        self.__exe_folder_path: str = exe_folder_path
+        self.__setting_path = os.path.join(self.__exe_folder_path, '.setting')
+        self.__setting_data: dict = self.__check_file()
+
+    @property
+    def setting_data(self):
+        return self.__setting_data
+
+    def open_file_to_json(self, file_path):
+        if not os.path.exists(file_path):
+            return
+        with open(file_path, 'r', encoding='utf-8') as file:
+            json_data = json.load(file)
+        return json_data
+
+    def write_file_to_json(self, content: dict, file_path: str = None):
+        if not file_path:
+            file_path = self.__setting_path
+        with open(file_path, 'w', encoding='utf-8') as file:
+            json.dump(content, file, indent=4, ensure_ascii=False)
 
     def __check_file(self):
         # 检查是否存在 setting 文件
-        if not os.path.exists(self.setting_path):
+        if not os.path.exists(self.__setting_path):
             # 不存在文件, 则创建 setting
             temp = self.__rebuild_setting()
         else:
             # 存在文件, 则检查 json 格式, 冗余, 丢失, 类型
             # 检查 json 格式
-            temp = self.__check_json(self.setting_path)
+            temp = self.__check_json(self.__setting_path)
             # 检查 冗余
             temp = self.__check_redundancy(temp)
             # 检查 丢失
@@ -47,7 +64,7 @@ class Setting_Manager():
                 temp[key] = DEFAULT_SETTING[key][1]
                 flag_write = True
         if flag_write:
-            self.write_file_to_json(self.setting_path, temp)
+            self.write_file_to_json(temp, self.__setting_path)
         return temp
 
     def __check_redundancy(self, content: dict):
@@ -58,7 +75,7 @@ class Setting_Manager():
                 del temp[key]
                 flag_write = True
         if flag_write:
-            self.write_file_to_json(self.setting_path, temp)
+            self.write_file_to_json(temp, self.__setting_path)
         return temp
 
     def __check_lost(self, content: dict):
@@ -71,26 +88,17 @@ class Setting_Manager():
             else:
                 temp[key] = content[key]
         if flag_write:
-            self.write_file_to_json(self.setting_path, temp)
+            self.write_file_to_json(temp, self.__setting_path)
         return temp
 
     def __rebuild_setting(self):
         temp = {}
         for key, value in DEFAULT_SETTING.items():
             temp[key] = value[1]
-        self.write_file_to_json(self.setting_path, temp)
+        self.write_file_to_json(temp, self.__setting_path)
         return temp
 
     def __open_file(self, file_path):
         with open(file_path, 'r', encoding='utf-8') as file:
             temp = file.read()
         return temp
-
-    def open_file_to_json(self, file_path):
-        with open(file_path, 'r', encoding='utf-8') as file:
-            json_data = json.load(file)
-        return json_data
-
-    def write_file_to_json(self, file_path, content: dict):
-        with open(file_path, 'w', encoding='utf-8') as file:
-            json.dump(content, file, indent=4, ensure_ascii=False)

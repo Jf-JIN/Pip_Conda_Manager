@@ -3,7 +3,6 @@ import os
 import sys
 import time
 import copy
-import pprint
 
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QTextDocument, QBrush, QColor
@@ -11,6 +10,8 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QHBoxLayout, QMe
 
 from pip_manager_win_main_ui import *
 from env_config_manager import *
+from language_manager import *
+from setting_manager import *
 
 from QSplashscreen_pip_manager import *
 from QThread_Environment_Variant import *
@@ -18,9 +19,11 @@ from QDialog_pipInstall_file_Editor import *
 from QDialog_env_manual_add import *
 from ConsoleTextBrowser import *
 from Const_svg_data import *
+from Const_language_chinese import *
 
 # APP_PATH = os.getcwd()
 APP_PATH = os.path.dirname(__file__)
+# print(APP_PATH)
 
 RESTART_EXIT_CODE = 88888888
 
@@ -43,6 +46,9 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
         '''
         self.splash = Manager_Splash_Screen()
         self.env_config_manager = Env_Config_Manager(APP_PATH)
+        self.setting_manager = Setting_Manager(APP_PATH)
+        self.setting_data = self.setting_manager.setting_data
+        self.language = Language_Manager(APP_PATH, self.setting_data['language'])
         self.list_check_box_package = []
         self.list_check_box_installed = []
         self.list_env_all = []
@@ -51,7 +57,7 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
         self.dict_env_add = {}
         self.flag_init = True
         self.flag_trackback = True
-        self.dependency_version_width = 130
+        self.dependency_version_width = 150
         self.python_folder_path = ''
 
     def signal_connections(self):
@@ -85,6 +91,8 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
         self.treeWidget_dependency.customContextMenuRequested.connect(self.context_menu_treewidget_dependency_init)
         # self.treeWidget_env.customContextMenuRequested.connect(self.open_config)
 
+        self.cbb_language.currentIndexChanged.connect(self.cbb_language_changed)
+
     def ui_init(self):
         '''
         界面初始化
@@ -94,6 +102,7 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
         self.setMinimumSize(800, 600)
         self.textbrowser_init()
         self.combo_init()
+        self.cbb_language_display_update()
         self.pb_edit_file.hide()
         self.cb_use_module.setEnabled(False)
         self.cb_use_module.hide()
@@ -113,8 +122,8 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
         self.treeWidget_dependency.setColumnWidth(0, 350)
         self.treeWidget_dependency.setColumnWidth(1, self.dependency_version_width)
         self.treeWidget_dependency.setColumnWidth(2, self.dependency_version_width)
-        self.treeWidget_dependency.setHeaderLabels(['包名', '当前版本', '要求版本'])
         self.treeWidget_dependency.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.display_language()
 
     def textbrowser_init(self):
         '''
@@ -131,6 +140,45 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
         Combobox 初始化
         '''
         self.cbb_install_env.setPlaceholderText(' ')
+
+    def cbb_language_display_update(self):
+        self.cbb_language.clear()
+        self.cbb_language.addItem('简体中文<内置>')
+        self.cbb_language.addItem('English<build-in>')
+        self.expand_language_package_folder_path = os.path.join(APP_PATH, '.Languages')
+        language_package_list = []
+        for i in os.listdir(self.expand_language_package_folder_path):
+            if i.endswith('.lpkg'):
+                language_package_list.append(i)
+        if len(language_package_list) > 0:
+            for i in language_package_list:
+                self.cbb_language.addItem(i.split('.lpkg')[0])
+        if self.setting_data['language'] == 'default':
+            self.cbb_language.setCurrentText(self.language.cbb_init_display)
+        else:
+            self.cbb_language.setCurrentText(self.setting_data['language'])
+
+    def cbb_language_changed(self):
+        text = self.cbb_language.currentText()
+        self.language.open_language_package(text)
+        self.setting_data['language'] = text
+        self.setting_manager.write_file_to_json(self.setting_data)
+        self.display_language()
+
+    def display_language(self):
+        list_widget = self.language.list_widges
+        for item in list_widget:
+            obj = getattr(self, item[0])
+            text: str = item[1].display_text
+            obj.setText(text)
+        self.treeWidget_dependency.setHeaderLabels([f'{self.language.module_name}', f'{self.language.current_version}',
+                                                    f'{self.language.required_version}'])
+        self.groupBox_dependency.setTitle(self.language.dependency_tree)
+        self.groupBox_installed.setTitle(self.language.installed_package)
+        self.groupBox_package.setTitle(self.language.package_batch_install)
+        self.toolBox.setItemText(self.toolBox.indexOf(self.page_dependency),  self.language.dependency_tree)
+        self.toolBox.setItemText(self.toolBox.indexOf(self.page_installed), self.language.installed_package)
+        self.toolBox.setItemText(self.toolBox.indexOf(self.page_package), self.language.package_batch_install)
 
     def resizeEvent(self, event):
         self.resize_tree_widget_dependency()
@@ -175,17 +223,17 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
         '''
         options = QFileDialog.Options()
         filename, _ = QFileDialog.getOpenFileName(
-            self, '请选择 Config_pip_conda_install 文件', APP_PATH, '配置文件(*.pipInstall)', options=options)
+            self, self.language.open_config_title, APP_PATH, f'{self.language.config_file}(*.pipInstall)', options=options)
         if filename:
             self.le_package_path.setText(filename)
             self.list_widget_show(self.listWidget_package, self.get_config_content())
 
     def create_config(self):
         options = QFileDialog.Options()
-        file_path, _ = QFileDialog.getSaveFileName(self, '新建 pipInstall 文件', APP_PATH, 'pipInstall Files (*.pipInstall)', options=options)
+        file_path, _ = QFileDialog.getSaveFileName(self, self.language.create_config_title, APP_PATH, f'{self.language.config_file}(*.pipInstall)', options=options)
         if file_path:
             with open(file_path, 'w', encoding='utf-8') as file:
-                text = '''# 注释符为'#', 无行间释符, 只有行内注释符\n# 例如: numpy   # numpy 是一个科学计算的第三方包\n'''
+                text = '''# 注释符为'#', 无行间释符, 只有行内注释符\n# 例如: numpy   # numpy 是一个科学计算的第三方包\n\n# The comment symbol is '#', no interline comment symbol, only intraline comment symbol\n# For example: numpy # numpy is a third-party package for scientific computing\n\n'''
                 file.write(text)
             self.le_package_path.setText(file_path)
             # self.open_config()
@@ -199,11 +247,11 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
             self.pipInstall_editor.exec_()
             self.list_widget_show(self.listWidget_package, self.get_config_content())
         else:
-            QMessageBox.information(None, '提示', '请重新核对配置文件的路径, 当前路径无效')
+            QMessageBox.information(None, self.language.information, self.language.edit_config_error)
 
     def get_config_content(self):
         '''
-        获取Config_pip_install.ini文件中的内容(含行内注释, 不含整行注释, 排除空行)
+        获取Config_pip_install.pipInstall文件中的内容(含行内注释, 不含整行注释, 排除空行)
         '''
         self.config = []
         self.config_path = self.le_package_path.text()
@@ -215,7 +263,7 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
             # print(self.config)
             return self.config
         except:
-            QMessageBox.information(None, '提示', '请重新核对配置文件的路径, 当前路径无效')
+            QMessageBox.information(None, self.language.information, self.language.read_config_error)
 
     def list_widget_show(self, list_widget: QListWidget, config_content):
         '''
@@ -409,13 +457,13 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
             treewidget.takeTopLevelItem(index)
         item = self.sender().itemAt(pos)
         menu_context = QMenu(self.treeWidget_env)
-        action_open = QAction('打开文件所在位置', self)
+        action_open = QAction(self.language.context_menu_tree_env_open, self)
         action_open.setIcon(self.icon_setup(OPEN_FOLDER_ICON))
         action_open.triggered.connect(lambda: open_env_folder(item))
         menu_context.addAction(action_open)
         menu_context.setStyleSheet('color: rgb(19, 24, 66)')
         if item.text(0).startswith('+'):
-            action_remove = QAction('从列表中移除此环境', self)
+            action_remove = QAction(self.language.context_menu_tree_env_remove, self)
             action_remove.setIcon(self.icon_setup(REMOVE_ICON))
             action_remove.triggered.connect(lambda: remove_env(self.treeWidget_env, item))
             menu_context.addAction(action_remove)
@@ -429,11 +477,11 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
                 expand_collapse_all(item.child(index), status)
         item: QTreeWidgetItem = self.sender().itemAt(pos)
         key_menu = QMenu(self.treeWidget_dependency)
-        action_expand = QAction('展开当前', self)
+        action_expand = QAction(self.language.context_menu_tree_dep_expand, self)
         action_expand.setIcon(self.icon_setup(EXPAND_ICON))
         action_expand.triggered.connect(lambda: expand_collapse_all(item, True))
         key_menu.addAction(action_expand)
-        action_collapse = QAction('折叠当前', self)
+        action_collapse = QAction(self.language.context_menu_tree_dep_collapse, self)
         action_collapse.setIcon(self.icon_setup(COLLAPSE_ICON))
         action_collapse.triggered.connect(lambda: expand_collapse_all(item, False))
         key_menu.addAction(action_collapse)
@@ -540,13 +588,12 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
         return command_list
 
     def add_env(self):
-        dialog = Env_Manual_Add()
+        dialog = Env_Manual_Add(self)
         dialog.exec_()
         env, env_path = dialog.get_input()
         env_name = ''
         if not env:
             return
-
         if env not in self.dict_env_add:
             self.dict_env_add[env] = []
         for i in [self.dict_env_add, self.dict_env]:
@@ -566,9 +613,6 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
 
         self.dict_env_add[env].append([env_name, env_path])
         self.env_config_manager.write_config(self.dict_env_add)
-        # self.env_config_manager.write_config(self.dict_env)
-        pprint.pprint(self.dict_env_add)
-
         voll_tip_text = f'+({env}){env_name}   {env_path}'
         item = QTreeWidgetItem(self.treeWidget_env)
         item.setText(0, f'+({env}){env_name}')
