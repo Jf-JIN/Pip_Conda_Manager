@@ -1,9 +1,9 @@
 
 import shutil
-import pprint
+
 
 from QDialog_pip_virtual_environment_manager import *
-from pip_manager_splash_screen import *
+
 from pip_manager_win_mainUI import *
 from QThread_Conda_Env import *
 from QThread_pip import *
@@ -15,20 +15,19 @@ from PyQt5.QtCore import pyqtSlot, QEventLoop
 class Manager_Function(Manager_UI):
     def __init__(self):
         super().__init__()
-        self.splash = Manager_Splash_Screen()
+
         self.load_pip_env()
         self.splash.close_splash_screen(self)
         # self.update_tree_dependency()
 
     def parameter_init(self):
         super().parameter_init()
-        self.ignore_changes = False
+        self.flag_has_virtual_env = False
+        self.flag_ignore_changes = False
         self.stack = [self.treeWidget_dependency.invisibleRootItem()]
         self.indent = ''
         self.indent_sign = 0
         # self.stop = False
-        self.env_dict = {}
-        self.flag_has_virtual_env = False
 
     def signal_connections(self):
         super().signal_connections()
@@ -38,7 +37,6 @@ class Manager_Function(Manager_UI):
         self.pb_env_manager.clicked.connect(self.virtual_env_manager)
         self.pb_single_command_launch.clicked.connect(self.launch_single_command)
         self.pb_package_install.clicked.connect(self.install_package_list)
-        self.pb_env_add.clicked.connect(self.add_env)
         self.le_single_command.returnPressed.connect(self.launch_single_command)
         self.cb_use_path.clicked.connect(self.display_cb_use_module)
 
@@ -50,7 +48,10 @@ class Manager_Function(Manager_UI):
         '''
         加载 pip 安装环境
         '''
-        self.env_dict = self.get_environment_list()
+        self.dict_env = self.get_environment_dict()
+        self.list_env_all = self.take_all_path(self.dict_env)
+        self.dict_env_add = self.get_env_add_dict()
+        self.list_env_add_all = self.take_all_path(self.dict_env_add)
         self.tree_env_display()
 
     def tree_env_display(self):
@@ -59,7 +60,7 @@ class Manager_Function(Manager_UI):
         '''
         try:
             self.treeWidget_env.clear()
-            for env_name, env_list in self.env_dict.items():
+            for env_name, env_list in self.dict_env.items():
                 if env_list:
                     for env_item_list in env_list:
                         item = QTreeWidgetItem(self.treeWidget_env)
@@ -78,6 +79,16 @@ class Manager_Function(Manager_UI):
                             voll_tip_text = f'无法对此 Python 进行操作\n{name} {env_item_list[0]}   {env_item_list[1]}'
                             item.setToolTip(0, voll_tip_text)
                             item.setToolTip(1, voll_tip_text)
+            for env_name, env_list in self.dict_env_add.items():
+                if env_list:
+                    for env_item_list in env_list:
+                        voll_tip_text = f'+({env_name}){env_item_list[0]}   {env_item_list[1]}'
+                        item = QTreeWidgetItem(self.treeWidget_env)
+                        item.setText(0, f'+({env_name}){env_item_list[0]}')
+                        item.setText(1, env_item_list[1])
+                        item.setToolTip(0, voll_tip_text)
+                        item.setToolTip(1, voll_tip_text)
+                        self.cbb_install_env.addItem(f'+({env_name}){env_item_list[0]}')
         except Exception as e:
             if self.flag_trackback:
                 e = traceback.format_exc()
@@ -94,22 +105,22 @@ class Manager_Function(Manager_UI):
         '''
         更新环境树
         '''
-        self.env_dict['conda'] = self.get_conda_environment_list()
+        self.dict_env['conda'] = self.get_conda_environment_list()
         self.tree_env_display()
 
     def change_combobox_from_tree_widget(self):
         '''
         通过 Combobox 更改 Treewidget
         '''
-        if self.ignore_changes:
+        if self.flag_ignore_changes:
             return
 
         tree_current_item = self.treeWidget_env.currentItem()
         if tree_current_item:
-            self.ignore_changes = True
+            self.flag_ignore_changes = True
             self.cbb_install_env.setCurrentText(tree_current_item.text(0))
             self.update_tree_dependency()
-            self.ignore_changes = False
+            self.flag_ignore_changes = False
             self.frame_cb_command.show()
             self.display_cb_use_module()
 
@@ -117,18 +128,18 @@ class Manager_Function(Manager_UI):
         '''
         通过 Treewidget 更改 Combobox
         '''
-        if self.ignore_changes:
+        if self.flag_ignore_changes:
             return
         cbb_current_text = self.cbb_install_env.currentText()
         if cbb_current_text:
-            self.ignore_changes = True
+            self.flag_ignore_changes = True
             for i in range(self.treeWidget_env.topLevelItemCount()):
                 item = self.treeWidget_env.topLevelItem(i)
                 if item.text(0) == cbb_current_text:
                     item.setSelected(True)
                     self.treeWidget_env.setCurrentItem(item)
                     break
-            self.ignore_changes = False
+            self.flag_ignore_changes = False
             self.update_tree_dependency()
             self.frame_cb_command.show()
             self.display_cb_use_module()
@@ -141,7 +152,7 @@ class Manager_Function(Manager_UI):
             self.cb_use_module.hide()
             self.cb_use_module.setEnabled(False)
 
-    def get_environment_list(self):
+    def get_environment_dict(self):
         '''
         获取环境列表, 并在加载页面中显示信息
         '''
@@ -152,6 +163,34 @@ class Manager_Function(Manager_UI):
         python_env_dict['conda'] = conda_env_list
         self.splash.show_message('加载完成, 完成初始化, 进入程序')
         return python_env_dict
+
+    def get_env_add_dict(self):
+        mark, env_add_dict = self.env_config_manager.open_config()
+        if mark == '-1':
+            QMessageBox.information(None, '提示', '请检查 .config_env 文件, 文件已被篡改, 数据格式错误')
+            return
+        elif mark == '0':
+            return
+        temp = {}
+        flag_rewrite = False
+        for key, env_add_list in env_add_dict.items():
+            for env_add_element in env_add_list:
+                if env_add_element[1] in self.list_env_all:
+                    flag_rewrite = True
+                else:
+                    if key not in temp:
+                        temp[key] = []
+                    temp[key].append(env_add_element)
+        if flag_rewrite:
+            self.env_config_manager.write_config(temp)
+        return temp
+
+    def take_all_path(self, env_dict: dict):
+        temp = []
+        for env_list in env_dict.values():
+            for env_element in env_list:
+                temp.append(env_element[1])
+        return temp
 
     def get_python_path_list(self) -> list:
         '''
@@ -269,7 +308,7 @@ class Manager_Function(Manager_UI):
         if not self.flag_has_virtual_env:
             QMessageBox.information(None, '提示', '未检测到虚拟环境')
             return
-        env_manager = Virtual_Environment_Manager(self, self.env_dict)
+        env_manager = Virtual_Environment_Manager(self, self.dict_env)
         env_manager.exec_()
         self.tree_env_update()
 
@@ -395,24 +434,6 @@ class Manager_Function(Manager_UI):
             return
         env_path = self.treeWidget_env.currentItem().text(1)
         print(env_path)
-
-    def add_env(self):
-        dialog = Env_Manual_Add()
-        dialog.exec_()
-        env, env_path = dialog.get_input()
-        if not env:
-            return
-        env_name = os.path.basename(os.path.dirname(env_path))
-        if env not in self.env_dict:
-            self.env_dict[env] = []
-        self.env_dict[env].append([env_name, env_path])
-        pprint.pprint(self.env_dict)
-        voll_tip_text = f'+({env}){env_name}   {env_path}'
-        item = QTreeWidgetItem(self.treeWidget_env)
-        item.setText(0, f'+({env}){env_name}')
-        item.setText(1, env_path)
-        item.setToolTip(0, voll_tip_text)
-        item.setToolTip(1, voll_tip_text)
 
 
 if __name__ == "__main__":

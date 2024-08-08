@@ -2,16 +2,21 @@
 import os
 import sys
 import time
+import copy
+import pprint
 
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QTextDocument, QBrush, QColor
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QHBoxLayout, QMessageBox, QListWidgetItem, QFileDialog, QCheckBox, QLabel, QListWidget, QTreeWidget, QTreeWidgetItem, QMenu, QAction, QLineEdit, qApp
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QHBoxLayout, QMessageBox, QListWidgetItem, QFileDialog, QCheckBox, QLabel, QListWidget, QTreeWidget, QTreeWidgetItem, QMenu, QAction, QLineEdit
 
 from pip_manager_win_main_ui import *
-from QDialog_pipInstall_file_Editor import *
-from ConsoleTextBrowser import *
+from env_config_manager import *
+
+from QSplashscreen_pip_manager import *
 from QThread_Environment_Variant import *
+from QDialog_pipInstall_file_Editor import *
 from QDialog_env_manual_add import *
+from ConsoleTextBrowser import *
 from Const_svg_data import *
 
 # APP_PATH = os.getcwd()
@@ -29,20 +34,25 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
         super().__init__()
         self.setupUi(self)
         self.parameter_init()
-        self.signal_connections()
         self.ui_init()
+        self.signal_connections()
 
     def parameter_init(self):
         '''
         参数初始化
         '''
-        self.check_box_package_list = []
-        self.check_box_installed_list = []
-        self.config_list = []
-        self.python_folder_path = ''
+        self.splash = Manager_Splash_Screen()
+        self.env_config_manager = Env_Config_Manager(APP_PATH)
+        self.list_check_box_package = []
+        self.list_check_box_installed = []
+        self.list_env_all = []
+        self.list_env_add_all = []
+        self.dict_env = {}
+        self.dict_env_add = {}
+        self.flag_init = True
         self.flag_trackback = True
         self.dependency_version_width = 130
-        self.flag_init = True
+        self.python_folder_path = ''
 
     def signal_connections(self):
         '''
@@ -58,6 +68,7 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
         self.pb_all_collapse.clicked.connect(self.tree_widget_all_collapse)
         self.pb_all_expand.clicked.connect(self.tree_widget_all_expand)
         self.pb_dependency_find.clicked.connect(self.find_in_treewidget_dependency)
+        self.pb_env_add.clicked.connect(self.add_env)
 
         self.cb_package_all_select.stateChanged.connect(self.ckb_all_select)
         self.cb_package_all_select.clicked.connect(self.ckb_clicked)
@@ -245,9 +256,9 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
                 widget.mousePressEvent = lambda event, checkbox=check_box: self.cb_widget_connect(checkbox)
                 check_box.stateChanged.connect(self.ckb_config_item_connect)
                 if list_widget == self.listWidget_package:
-                    self.check_box_package_list = check_box_list
+                    self.list_check_box_package = check_box_list
                 elif list_widget == self.listWidget_installed:
-                    self.check_box_installed_list = check_box_list
+                    self.list_check_box_installed = check_box_list
         # for i in range(list_widget.count()):
         #     item: QListWidgetItem = list_widget.item(i)
         #     check_box_list.append(list_widget.itemWidget(item))
@@ -264,7 +275,7 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
         '''
         信号连接, 功能：如果有一个勾选框未被选择, 则全选勾选框置为未选择
         '''
-        all_checked = all(check_box.isChecked() for check_box in self.check_box_package_list)
+        all_checked = all(check_box.isChecked() for check_box in self.list_check_box_package)
         self.cb_package_all_select.setChecked(all_checked)
 
     def cb_widget_connect(self, checkbox: QCheckBox):
@@ -277,12 +288,12 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
         sender = self.sender()
         if sender == self.cb_package_all_select:
             if self.cb_package_all_select.isChecked():
-                for i in self.check_box_package_list:
+                for i in self.list_check_box_package:
                     i: QCheckBox
                     i.setChecked(True)
         elif sender == self.cb_installed_all_select:
             if self.cb_installed_all_select.isChecked():
-                for i in self.check_box_installed_list:
+                for i in self.list_check_box_installed:
                     i: QCheckBox
                     i.setChecked(True)
 
@@ -293,12 +304,12 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
         sender = self.sender()
         if sender == self.cb_package_all_select:
             if not self.cb_package_all_select.isChecked():
-                for i in self.check_box_package_list:
+                for i in self.list_check_box_package:
                     i: QCheckBox
                     i.setChecked(False)
         elif sender == self.cb_installed_all_select:
             if not self.cb_installed_all_select.isChecked():
-                for i in self.check_box_installed_list:
+                for i in self.list_check_box_installed:
                     i: QCheckBox
                     i.setChecked(False)
 
@@ -308,9 +319,9 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
         '''
         sender = self.sender()
         if sender == self.pb_package_invert:
-            check_box_list = self.check_box_package_list
+            check_box_list = self.list_check_box_package
         elif sender == self.pb_installed_invert:
-            check_box_list = self.check_box_installed_list
+            check_box_list = self.list_check_box_installed
         else:
             return
         for i in check_box_list:
@@ -429,7 +440,35 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
         key_menu.setStyleSheet('color: rgb(19, 24, 66)')
         key_menu.exec_(self.sender().mapToGlobal(pos))
 
-    def find_in_treewidget(self, treewidget: QTreeWidget, content: str):
+    # def find_in_treewidget(self, treewidget: QTreeWidget, content: str):
+    #     def highlight_item(item: QTreeWidgetItem):
+    #         item.setBackground(0, QBrush(QColor('#B4E380')))  # Highlight the item with yellow background
+    #         item.setSelected(True)
+
+    #     def clear_highlighting(treewidget):
+    #         for item in treewidget.findItems('', Qt.MatchContains | Qt.MatchRecursive):
+    #             item: QTreeWidgetItem
+    #             item.setBackground(0, QBrush(QColor('transparent')))
+    #             item.setSelected(False)
+
+    #     def search_items(item: QTreeWidgetItem, content):
+    #         for index in range(item.childCount()):
+    #             child = item.child(index)
+    #             if content in child.text(0).lower():
+    #                 highlight_item(child)
+    #             search_items(child, content)
+    #     clear_highlighting(treewidget)
+    #     search_items(treewidget.invisibleRootItem(), content)
+
+    def clear_find_result_in_treewidget(self, treewidget: QTreeWidget):
+        if self.le_dependency_find.text() and self.le_dependency_find.text() != '':
+            return
+        for item in treewidget.findItems('', Qt.MatchContains | Qt.MatchRecursive):
+            item: QTreeWidgetItem
+            item.setBackground(0, QBrush(QColor('transparent')))
+            item.setSelected(False)
+
+    def find_in_treewidget_dependency(self):
         def highlight_item(item: QTreeWidgetItem):
             item.setBackground(0, QBrush(QColor('#B4E380')))  # Highlight the item with yellow background
             item.setSelected(True)
@@ -446,22 +485,12 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
                 if content in child.text(0).lower():
                     highlight_item(child)
                 search_items(child, content)
-        clear_highlighting(treewidget)
-        search_items(treewidget.invisibleRootItem(), content)
 
-    def clear_find_result_in_treewidget(self, treewidget: QTreeWidget):
-        if self.le_dependency_find.text() and self.le_dependency_find.text() != '':
-            return
-        for item in treewidget.findItems('', Qt.MatchContains | Qt.MatchRecursive):
-            item: QTreeWidgetItem
-            item.setBackground(0, QBrush(QColor('transparent')))
-            item.setSelected(False)
-
-    def find_in_treewidget_dependency(self):
         content = self.le_dependency_find.text().lower()
         if not content or content == '':
             return
-        self.find_in_treewidget(self.treeWidget_dependency, content)
+        clear_highlighting(self.treeWidget_dependency)
+        search_items(self.treeWidget_dependency.invisibleRootItem(), content)
 
     def find_in_listwidget_installed(self):
         content = self.le_installed_find.text().lower()
@@ -510,9 +539,49 @@ class Manager_UI(Ui_MainWindow, QMainWindow):
                 command_list.append(text)
         return command_list
 
-    # def restart(self):
-    #     self.hide()
-    #     qApp.exit(RESTART_EXIT_CODE)
+    def add_env(self):
+        dialog = Env_Manual_Add()
+        dialog.exec_()
+        env, env_path = dialog.get_input()
+        env_name = ''
+        if not env:
+            return
+
+        if env not in self.dict_env_add:
+            self.dict_env_add[env] = []
+        for i in [self.dict_env_add, self.dict_env]:
+            # 查重, 查看 各个虚拟环境器
+            for list_from_env_key in i.values():
+                # print(list_from_env_key)
+                # 查看 虚拟环境器中的虚拟环境
+                for env_item in list_from_env_key:
+                    # 如果该路径/虚拟环境已经存在
+                    # print(env_item)
+                    if len(env_item) > 1 and env_item[1] == env_path:
+                        self.search_item_in_treewidget_env(env_path)
+                        return
+
+        if env == 'venv':
+            env_name = os.path.basename(os.path.dirname(os.path.dirname(env_path)))
+
+        self.dict_env_add[env].append([env_name, env_path])
+        self.env_config_manager.write_config(self.dict_env_add)
+        # self.env_config_manager.write_config(self.dict_env)
+        pprint.pprint(self.dict_env_add)
+
+        voll_tip_text = f'+({env}){env_name}   {env_path}'
+        item = QTreeWidgetItem(self.treeWidget_env)
+        item.setText(0, f'+({env}){env_name}')
+        item.setText(1, env_path)
+        item.setToolTip(0, voll_tip_text)
+        item.setToolTip(1, voll_tip_text)
+        self.cbb_install_env.addItem(f'+({env}){env_name}')
+
+    def search_item_in_treewidget_env(self, content: str):
+        for index in range(self.treeWidget_env.invisibleRootItem().childCount()):
+            child = self.treeWidget_env.invisibleRootItem().child(index)
+            if content.lower() == child.text(1).lower():
+                child.setSelected(True)
 
 
 if __name__ == '__main__':
