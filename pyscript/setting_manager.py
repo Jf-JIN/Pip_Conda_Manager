@@ -9,11 +9,10 @@ DEFAULT_SETTING = {
 
 
 class Setting_Manager():
-    def __init__(self, exe_path) -> None:
-        self.exe_path = exe_path
-        self.setting_path = os.path.join(self.exe_path, 'setting')
+    def __init__(self, exe_folder_path) -> None:
+        self.exe_folder_path = exe_folder_path
+        self.setting_path = os.path.join(self.exe_folder_path, '.setting')
         self.setting_data = self.__check_file()
-        print(self.setting_data)
 
     def __check_file(self):
         # 检查是否存在 setting 文件
@@ -94,4 +93,4 @@ class Setting_Manager():
 
     def write_file_to_json(self, file_path, content: dict):
         with open(file_path, 'w', encoding='utf-8') as file:
-            json.dump(content, file, indent=None, ensure_ascii=True)
+            json.dump(content, file, indent=4, ensure_ascii=False)
