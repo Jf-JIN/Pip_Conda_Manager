@@ -70,15 +70,15 @@ class Env_Manual_Add(QDialog):
         layout.addWidget(frame, stretch=100)
         layout.addLayout(layout_pb)
         self.cbb_env.addItem('venv')
-        self.cbb_env.addItem('virtualenv')
-        self.cbb_env.addItem('pipenv')
-        self.cbb_env.addItem('poetry')
-        self.cbb_env.addItem('pyenv')
-        self.cbb_env.addItem('venvwrapper')
-        self.cbb_env.addItem('Pipx')
-        self.cbb_env.addItem('Hatch')
-        self.cbb_env.addItem('Pex')
-        self.cbb_env.addItem('Nox')
+        # self.cbb_env.addItem('virtualenv')
+        # self.cbb_env.addItem('pipenv')
+        # self.cbb_env.addItem('poetry')
+        # self.cbb_env.addItem('pyenv')
+        # self.cbb_env.addItem('venvwrapper')
+        # self.cbb_env.addItem('Pipx')
+        # self.cbb_env.addItem('Hatch')
+        # self.cbb_env.addItem('Pex')
+        # self.cbb_env.addItem('Nox')
         self.cbb_env.setCurrentIndex(-1)
         self.setStyleSheet(self.__set_style_sheet())
 
@@ -89,7 +89,7 @@ class Env_Manual_Add(QDialog):
             QMessageBox.information(None, '提示', '请选择环境类型')
         if not env_path or env_path == '':
             QMessageBox.information(None, '提示', '请输入 Python 解释器路径')
-        return env, env_path
+        return env, env_path.replace('/', '\\')
 
     def __on_add_clicked(self):
         env, env_path = self.__get_env()
