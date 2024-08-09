@@ -17,3 +17,19 @@
 在虚拟环境管理中，用户可以新建环境，更新环境，删除环境。其中更新环境不建议使用，因为其运行时间较长，而且至今仍有bug(运行响应时间过长)。如更新环境，建议在主界面中手动选择所有的需要更新项目进行更新(可以在 `批量安装导入` 或者在 `已安装` 中进行选择)
 
 当用户选择环境后，如果用户安装了 `pipdeptree` ， 则可以看到当前 python 环境的依赖项
+
+<div style="display:inline-block">  <img src="https://github.com/Jf-JIN/Pip_Conda_Manager/blob/main/img/ch_01.png" alt="image1" height = "150" align=center > </div>
+
+<div style="display:inline-block">  <img src="https://github.com/Jf-JIN/Pip_Conda_Manager/blob/main/img/ch_02.png" alt="image1" height = "150" align=center > </div>
+
+<div style="display:inline-block">  <img src="https://github.com/Jf-JIN/Pip_Conda_Manager/blob/main/img/ch_03.png" alt="image1" height = "150" align=center > </div>
+
+<div style="display:inline-block">  <img src="https://github.com/Jf-JIN/Pip_Conda_Manager/blob/main/img/ch_04.png" alt="image1" height = "150" align=center > </div>
+
+<div style="display:inline-block">  <img src="https://github.com/Jf-JIN/Pip_Conda_Manager/blob/main/img/ch_05.png" alt="image1" height = "150" align=center > </div>
+
+<div style="display:inline-block">  <img src="https://github.com/Jf-JIN/Pip_Conda_Manager/blob/main/img/en_01.png" alt="image1" height = "150" align=center > </div>
+
+<div style="display:inline-block">  <img src="https://github.com/Jf-JIN/Pip_Conda_Manager/blob/main/img/en_02.png" alt="image1" height = "150" align=center > </div>
+
+<div style="display:inline-block">  <img src="https://github.com/Jf-JIN/Pip_Conda_Manager/blob/main/img/startup.png" alt="image1" height = "150" align=center > </div>
