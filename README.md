@@ -18,6 +18,38 @@
 
 当用户选择环境后，如果用户安装了 `pipdeptree` ， 则可以看到当前 python 环境的依赖项
 
+
+
+## 开发进度
+
+#### 已完成：
+
+* 自动加载python环境
+
+* 环境列表右键菜单
+* 自动显示依赖项
+* 依赖项右键菜单
+* 自动加载语言包
+* 软件设置自动保存
+* pip环境更新
+* 单行命令执行
+* 手动添加环境
+* 虚拟环境管理窗口
+  * 新建conda环境
+  * 删除conda环境
+  * 更新conda环境
+* 加载.pipInstall文件
+* 文件编辑器
+* 语言界面的设置
+
+#### 未完成：
+
+* 批量安装
+
+* 安装包的记录
+
+
+
 <div style="display:inline-block">  <img src="https://github.com/Jf-JIN/Pip_Conda_Manager/blob/main/img/ch_01.png" alt="image1" height = "150" align=center > </div>
 
 <div style="display:inline-block">  <img src="https://github.com/Jf-JIN/Pip_Conda_Manager/blob/main/img/ch_02.png" alt="image1" height = "150" align=center > </div>
