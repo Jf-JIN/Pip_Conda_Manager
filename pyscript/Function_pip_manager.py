@@ -4,7 +4,7 @@ import shutil
 
 from QDialog_pip_virtual_environment_manager import *
 
-from pip_manager_win_mainUI import *
+from UI_pip_manager_win_main import *
 from QThread_Conda_Env import *
 from QThread_pip import *
 
@@ -37,6 +37,7 @@ class Manager_Function(Manager_UI):
         self.pb_env_manager.clicked.connect(self.virtual_env_manager)
         self.pb_single_command_launch.clicked.connect(self.launch_single_command)
         self.pb_package_install.clicked.connect(self.install_package_list)
+        self.pb_package_uninstall.clicked.connect(self.install_package_list)
         self.le_single_command.returnPressed.connect(self.launch_single_command)
         self.cb_use_path.clicked.connect(self.display_cb_use_module)
 
@@ -53,6 +54,10 @@ class Manager_Function(Manager_UI):
         self.dict_env_add = self.get_env_add_dict()
         self.list_env_add_all = self.take_all_path(self.dict_env_add)
         self.tree_env_display()
+        self.splash.show_message('初始化记录读写器')
+        self.manager_record: Manager_Pip_Record = Manager_Pip_Record(self, APP_PATH)
+        self.record = self.manager_record.record
+        self.splash.show_message('初始化完成，进入程序')
 
     def tree_env_display(self):
         '''
@@ -123,6 +128,7 @@ class Manager_Function(Manager_UI):
             self.flag_ignore_changes = False
             self.frame_cb_command.show()
             self.display_cb_use_module()
+            self.display_installed_tree()
 
     def change_tree_widget_from_combobox(self):
         '''
@@ -143,6 +149,7 @@ class Manager_Function(Manager_UI):
             self.update_tree_dependency()
             self.frame_cb_command.show()
             self.display_cb_use_module()
+            self.display_installed_tree()
 
     def display_cb_use_module(self):
         if self.treeWidget_env.currentItem().text(0).startswith('Python') and self.cb_use_path.isChecked():
@@ -161,7 +168,7 @@ class Manager_Function(Manager_UI):
         conda_env_list = self.get_conda_environment_list()
         python_env_dict['python'] = python_path_list
         python_env_dict['conda'] = conda_env_list
-        self.splash.show_message('加载完成, 完成初始化, 进入程序')
+        self.splash.show_message('加载环境完成')
         return python_env_dict
 
     def get_env_add_dict(self):
@@ -289,6 +296,39 @@ class Manager_Function(Manager_UI):
                 e = traceback.format_exc()
             QMessageBox.information(None, self.language.information, f'{self.language.load_conda_error}<br>{e}')
 
+    def display_installed_tree(self):
+        self.listWidget_installed.clear()
+        path = self.treeWidget_env.currentItem().text(1)
+        if path and path in self.record:
+            check_box_list = []
+            for key, item in self.record[path].items():
+                lw_item = QListWidgetItem()
+                widget = QWidget()
+                label_name = QLabel(key)
+                label_version = QLabel(item['version'])
+                label_time = QLabel(item['date_time'].split('.')[0])
+                for label_any in [label_name, label_version, label_time]:
+                    label_any.setWordWrap(True)
+                    label_any.setStyleSheet('color: rgb(19, 24, 66);')
+                    label_any.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+                height = self.get_adjust_label_height(label_name)
+                check_box = QCheckBox()
+                check_box_list.append(check_box)
+                layout = QHBoxLayout(widget)
+                layout.addWidget(check_box, stretch=0)
+                layout.addWidget(label_name, stretch=30)
+                layout.addWidget(label_version, stretch=20)
+                layout.addWidget(label_time, stretch=40)
+                layout.setContentsMargins(0, 0, 0, 0)
+                layout.setSpacing(10)
+                # 调整高度
+                lw_item.setSizeHint(QSize(int(self.listWidget_installed.sizeHint().width()), int(height)))
+                self.listWidget_installed.addItem(lw_item)
+                self.listWidget_installed.setItemWidget(lw_item, widget)
+                widget.mousePressEvent = lambda event, checkbox=check_box: self.cb_widget_connect(checkbox)
+                check_box.stateChanged.connect(lambda: self.ckb_config_item_connect(self.cb_installed_all_select, check_box_list))
+                self.list_check_box_installed = check_box_list
+
     def upgrade_pip(self):
         '''
         更新 pip
@@ -331,6 +371,7 @@ class Manager_Function(Manager_UI):
         self.thread_command.start()
 
     def build_dependency_tree_on_tree_widget(self, line: str):
+        # print(line)
         '''
         建立依赖树
         '''
@@ -391,10 +432,13 @@ class Manager_Function(Manager_UI):
                 return
 
             # 删除当前级别之后的所有项
+            while len(self.stack) > indent_level + 1:
+                self.stack.pop()
             if indent_level > 0:
-                while len(self.stack) > indent_level + 1:
-                    self.stack.pop()
-                item = QTreeWidgetItem(self.stack[-1])
+                parent = self.stack[-1]
+                if parent is None:  # 添加有效性检查
+                    return
+                item = QTreeWidgetItem(parent)
             else:
                 self.stack = [self.treeWidget_dependency.invisibleRootItem()]
                 item = QTreeWidgetItem(self.treeWidget_dependency)
@@ -407,7 +451,8 @@ class Manager_Function(Manager_UI):
             self.treeWidget_dependency.expandAll()
         except Exception as e:
             if self.flag_trackback:
-                e = traceback.format_exc()
+                e = type(e).__name__ + traceback.format_exc()
+                print(e)
                 self.textbrowser.append_text(e)
 
     def update_tree_dependency(self):
@@ -422,17 +467,24 @@ class Manager_Function(Manager_UI):
         self.thread_dependency.start()
 
     def install_package_list(self):
-        selected_item = self.get_selected_item_package_list()
-        env_name = self.cbb_install_env.currentText()
+        selected_item = self.get_selected_item_package_list(self.listWidget_package)
+        env_info = self.cbb_install_env.currentText()
+        sender = self.sender()
         if len(selected_item) < 1:
             QMessageBox.information(None, self.language.information, self.language.please_select_module)
             return
-        elif not env_name or env_name == '':
+        elif not env_info or env_info == '':
             QMessageBox.information(None, self.language.information, self.language.please_select_install_env)
             return
-        elif env_name == 'WindowsApps':
+        elif env_info == 'WindowsApps':
             return
-        env_path = self.treeWidget_env.currentItem().text(1)
+        python_exe_path = self.treeWidget_env.currentItem().text(1)
+        if sender == self.pb_package_uninstall:
+            self.thread_install = QThread_pip_install_list(self, exe_folder_path=APP_PATH, env_info=env_info, python_exe_path=python_exe_path, flag_install='uninstall', package_list=selected_item)
+        elif sender == self.pb_package_install:
+            self.thread_install = QThread_pip_install_list(self, exe_folder_path=APP_PATH, env_info=env_info, python_exe_path=python_exe_path, flag_install='install', package_list=selected_item)
+        self.thread_install.signal_textbrowser.connect(self.textbrowser.append_text)
+        self.thread_install.start()
 
 
 if __name__ == "__main__":

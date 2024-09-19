@@ -1,0 +1,638 @@
+
+import os
+import sys
+import time
+import copy
+
+from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtGui import QTextDocument, QBrush, QColor
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QHBoxLayout, QMessageBox, QListWidgetItem, QFileDialog, QCheckBox, QLabel, QListWidget, QTreeWidget, QTreeWidgetItem, QMenu, QAction, QLineEdit
+
+from UI_pip_manager_win_main_ui import *
+from Manager_env_config import *
+# from Manager_language import *
+from Manager_setting import *
+
+from QSplashscreen_pip_manager import *
+from QThread_Environment_Variant import *
+from QDialog_pipInstall_file_Editor import *
+from QDialog_env_manual_add import *
+# from Widget_ConsoleTextBrowser import *
+# from Const_svg_data import *
+# from Const_language_chinese import *
+
+# APP_PATH = os.getcwd()
+APP_PATH = os.path.dirname(__file__)
+# print(APP_PATH)
+
+RESTART_EXIT_CODE = 88888888
+
+
+class Manager_UI(Ui_MainWindow, QMainWindow):
+    '''
+    主窗口 GUI 界面类
+    '''
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.setupUi(self)
+        self.parameter_init()
+        self.ui_init()
+        self.signal_connections()
+
+    def parameter_init(self):
+        '''
+        参数初始化
+        '''
+        self.splash = Manager_Splash_Screen()
+        self.env_config_manager = Env_Config_Manager(APP_PATH)
+        self.setting_manager = Setting_Manager(APP_PATH)
+        self.setting_data = self.setting_manager.setting_data
+        self.language = Language_Manager(APP_PATH, self.setting_data['language'])
+        self.list_check_box_package = []
+        self.list_check_box_installed = []
+        self.list_env_all = []
+        self.list_env_add_all = []
+        self.dict_env = {}
+        self.dict_env_add = {}
+        self.flag_init = True
+        self.flag_trackback = True
+        self.dependency_version_width = 150
+        self.python_folder_path = ''
+
+    def signal_connections(self):
+        '''
+        信号连接初始化
+        '''
+        self.pb_all_clear.clicked.connect(self.all_clear)
+        self.pb_env.clicked.connect(self.open_enviroment_variant)
+        self.pb_open_file.clicked.connect(self.open_config)
+        self.pb_create_new_file.clicked.connect(self.create_config)
+        self.pb_edit_file.clicked.connect(self.edit_config)
+        self.pb_installed_invert.clicked.connect(self.inverse_select)
+        self.pb_package_invert.clicked.connect(self.inverse_select)
+        self.pb_package_update.clicked.connect(self.refresh_list)
+        self.pb_all_collapse.clicked.connect(self.tree_widget_all_collapse)
+        self.pb_all_expand.clicked.connect(self.tree_widget_all_expand)
+        self.pb_dependency_find.clicked.connect(self.find_in_treewidget_dependency)
+        self.pb_env_add.clicked.connect(self.add_env)
+
+        self.cb_package_all_select.stateChanged.connect(self.ckb_all_select)
+        self.cb_package_all_select.clicked.connect(self.ckb_clicked)
+        self.cb_installed_all_select.stateChanged.connect(self.ckb_all_select)
+        self.cb_installed_all_select.clicked.connect(self.ckb_clicked)
+
+        self.le_package_path.textChanged.connect(self.can_pb_edit_enable)
+        self.le_dependency_find.returnPressed.connect(self.find_in_treewidget_dependency)
+        self.le_dependency_find.textChanged.connect(lambda: self.clear_find_result_in_treewidget(self.treeWidget_dependency))
+        self.le_installed_find.returnPressed.connect(self.find_in_listwidget_installed)
+        self.le_installed_find.textChanged.connect(lambda: self.clear_find_result_in_listwidget(self.le_installed_find, self.listWidget_installed))
+        self.le_package_find.returnPressed.connect(self.find_in_listwidget_package)
+        self.le_package_find.textChanged.connect(lambda: self.clear_find_result_in_listwidget(self.le_package_find, self.listWidget_package))
+
+        self.treeWidget_env.customContextMenuRequested.connect(self.context_menu_treewidget_env_init)
+        self.treeWidget_dependency.customContextMenuRequested.connect(self.context_menu_treewidget_dependency_init)
+        # self.treeWidget_env.customContextMenuRequested.connect(self.open_config)
+
+        self.cbb_language.currentIndexChanged.connect(self.cbb_language_changed)
+
+    def ui_init(self):
+        '''
+        界面初始化
+        '''
+        self.setWindowTitle('Pip-Conda-Manager')
+        self.setWindowIcon(self.icon_setup(MAIN_ICON))
+        self.setMinimumSize(800, 600)
+        self.textbrowser_init()
+        self.combo_init()
+        self.cbb_language_display_update()
+        self.pb_edit_file.hide()
+        self.cb_use_module.setEnabled(False)
+        self.cb_use_module.hide()
+        self.frame_cb_command.hide()
+        self.le_dependency_find.setClearButtonEnabled(True)
+        self.le_installed_find.setClearButtonEnabled(True)
+        self.le_package_find.setClearButtonEnabled(True)
+        self.le_package_path.setClearButtonEnabled(True)
+        self.le_single_command.setClearButtonEnabled(True)
+        self.treeWidget_env.setColumnCount(2)
+        self.treeWidget_env.setColumnWidth(0, 200)
+        self.treeWidget_env.header().setVisible(False)
+        self.treeWidget_env.setSelectionMode(QTreeWidget.SingleSelection)
+        self.treeWidget_env.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.treeWidget_dependency.header().setVisible(True)
+        self.treeWidget_dependency.setColumnCount(3)
+        self.treeWidget_dependency.setColumnWidth(0, 350)
+        self.treeWidget_dependency.setColumnWidth(1, self.dependency_version_width)
+        self.treeWidget_dependency.setColumnWidth(2, self.dependency_version_width)
+        self.treeWidget_dependency.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.display_language()
+
+    def textbrowser_init(self):
+        '''
+        TextBrowser 初始化
+        '''
+        layout = QHBoxLayout(self.frame_textbrowser)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        self.textbrowser = Console_TextBrowser(default_font_family='黑体', default_font_size=16)
+        layout.addWidget(self.textbrowser)
+
+    def combo_init(self):
+        '''
+        Combobox 初始化
+        '''
+        self.cbb_install_env.setPlaceholderText(' ')
+
+    def cbb_language_display_update(self):
+        self.cbb_language.clear()
+        self.cbb_language.addItem('简体中文<内置>')
+        self.cbb_language.addItem('English<build-in>')
+        self.expand_language_package_folder_path = os.path.join(APP_PATH, '.Languages')
+        language_package_list = []
+        for i in os.listdir(self.expand_language_package_folder_path):
+            if i.endswith('.lpkg'):
+                language_package_list.append(i)
+        if len(language_package_list) > 0:
+            for i in language_package_list:
+                self.cbb_language.addItem(i.split('.lpkg')[0])
+        if self.setting_data['language'] == 'default':
+            self.cbb_language.setCurrentText(self.language.cbb_init_display)
+        else:
+            self.cbb_language.setCurrentText(self.setting_data['language'])
+
+    def cbb_language_changed(self):
+        text = self.cbb_language.currentText()
+        self.language.open_language_package(text)
+        self.setting_data['language'] = text
+        self.setting_manager.write_file_to_json(self.setting_data)
+        self.display_language()
+
+    def display_language(self):
+        list_widget = self.language.list_widges
+        for item in list_widget:
+            obj = getattr(self, item[0])
+            text: str = item[1].display_text
+            obj.setText(text)
+        self.treeWidget_dependency.setHeaderLabels([f'{self.language.module_name}', f'{self.language.current_version}',
+                                                    f'{self.language.required_version}'])
+        self.groupBox_dependency.setTitle(self.language.dependency_tree)
+        self.groupBox_installed.setTitle(self.language.installed_package)
+        self.groupBox_package.setTitle(self.language.package_batch_install)
+        self.toolBox.setItemText(self.toolBox.indexOf(self.page_dependency),  self.language.dependency_tree)
+        self.toolBox.setItemText(self.toolBox.indexOf(self.page_installed), self.language.installed_package)
+        self.toolBox.setItemText(self.toolBox.indexOf(self.page_package), self.language.package_batch_install)
+
+    def resizeEvent(self, event):
+        self.resize_tree_widget_dependency()
+        super().resizeEvent(event)
+
+    def resize_tree_widget_dependency(self):
+        dependency_width = self.treeWidget_dependency.width() - 2*self.dependency_version_width
+        if self.flag_init:  # 判断如果是第一次改变大小，即初始化，则忽略重置大小
+            self.flag_init = False
+            return
+        if dependency_width < self.dependency_version_width:
+            dependency_width = self.dependency_version_width
+        self.treeWidget_dependency.setColumnWidth(0, dependency_width)
+
+    def add_item_of_checkbox_after_checking_repeat(self, content):
+        '''
+        检查 Checkbox 添加项是否有重复
+        '''
+        add_new_python_path_flag = 0
+        if self.cbb_install_env.count() == 0:
+            self.cbb_install_env.addItem(content)
+        else:
+            for i in range(self.cbb_install_env.count()):
+                item = self.cbb_install_env.itemText(i)
+                if item == content:
+                    add_new_python_path_flag += 1
+            if add_new_python_path_flag == 0:
+                self.cbb_install_env.addItem(content)
+
+    def can_pb_edit_enable(self):
+        '''
+        判断并更改是否可以使用 编辑文件 按钮功能
+        '''
+        if self.le_package_path.text().strip() != '':
+            self.pb_edit_file.show()
+        else:
+            self.pb_edit_file.hide()
+
+    def open_config(self):
+        '''
+        通过窗口打开 Config 文件
+        '''
+        options = QFileDialog.Options()
+        filename, _ = QFileDialog.getOpenFileName(
+            self, self.language.open_config_title, APP_PATH, f'{self.language.config_file}(*.pipInstall)', options=options)
+        if filename:
+            self.le_package_path.setText(filename)
+            self.list_widget_show(self.listWidget_package, self.get_config_content())
+
+    def create_config(self):
+        options = QFileDialog.Options()
+        file_path, _ = QFileDialog.getSaveFileName(self, self.language.create_config_title, APP_PATH, f'{self.language.config_file}(*.pipInstall)', options=options)
+        if file_path:
+            with open(file_path, 'w', encoding='utf-8') as file:
+                text = '''# 注释符为'#', 无行间释符, 只有行内注释符\n# 例如: numpy   # numpy 是一个科学计算的第三方包\n\n# The comment symbol is '#', no interline comment symbol, only intraline comment symbol\n# For example: numpy # numpy is a third-party package for scientific computing\n\n'''
+                file.write(text)
+            self.le_package_path.setText(file_path)
+            # self.open_config()
+
+    def edit_config(self):
+        '''
+        用记事本打开Config文件
+        '''
+        if os.path.exists(self.le_package_path.text()):
+            self.pipInstall_editor = pipInstall_Editor(self, self.le_package_path.text())
+            self.pipInstall_editor.exec_()
+            self.list_widget_show(self.listWidget_package, self.get_config_content())
+        else:
+            QMessageBox.information(None, self.language.information, self.language.edit_config_error)
+
+    def get_config_content(self):
+        '''
+        获取Config_pip_install.pipInstall文件中的内容(含行内注释, 不含整行注释, 排除空行)
+        '''
+        self.config = []
+        self.config_path = self.le_package_path.text()
+        try:
+            with open(self.config_path, encoding='UTF-8') as self.config_ini:
+                for content in self.config_ini.readlines():
+                    if not content.startswith('#') and not content.startswith('\n'):
+                        self.config.append(content.strip())
+            # print(self.config)
+            return self.config
+        except:
+            QMessageBox.information(None, self.language.information, self.language.read_config_error)
+
+    def list_widget_show(self, list_widget: QListWidget, config_content):
+        '''
+        List-Widget 列表元素显示
+        '''
+        list_widget.clear()
+        check_box_list = []
+        if config_content:
+            for i in config_content:
+                i: str
+                item = QListWidgetItem()
+                widget = QWidget()
+                label = QLabel(i.split('#')[0].strip())
+                label.setWordWrap(True)
+                label.setStyleSheet('color: rgb(19, 24, 66);')
+                label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+                height = self.get_adjust_label_height(label)
+                check_box = QCheckBox()
+                check_box_list.append(check_box)
+                layout = QHBoxLayout(widget)
+                layout.addWidget(check_box, stretch=0)
+                layout.addWidget(label, stretch=30)
+                layout.setContentsMargins(0, 0, 0, 0)
+                layout.setSpacing(10)
+                # 如果有注释的话
+                if len(i.split('#')) > 1:
+                    complement = '# ' + i.split('#')[1].strip()
+                    label_complement = QLabel(complement)
+                    label_complement.setWordWrap(True)
+                    label_complement.setStyleSheet('color: rgb(19, 24, 66);')
+                    label_complement.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+                    height = max(height, self.get_adjust_label_height(label_complement))
+                    layout.addWidget(label_complement, stretch=100)
+                # 调整label的高度
+                item.setSizeHint(QSize(int(label.sizeHint().width()), int(height)))
+                list_widget.addItem(item)
+                list_widget.setItemWidget(item, widget)
+                widget.mousePressEvent = lambda event, checkbox=check_box: self.cb_widget_connect(checkbox)
+                check_box.stateChanged.connect(lambda: self.ckb_config_item_connect(self.cb_package_all_select, check_box_list))
+                if list_widget == self.listWidget_package:
+                    self.list_check_box_package = check_box_list
+                elif list_widget == self.listWidget_installed:
+                    self.list_check_box_installed = check_box_list
+        # for i in range(list_widget.count()):
+        #     item: QListWidgetItem = list_widget.item(i)
+        #     check_box_list.append(list_widget.itemWidget(item))
+
+    def get_adjust_label_height(self, label_widget: QLabel):
+        text_document = QTextDocument()
+        text_document.setDefaultFont(label_widget.font())
+        text_document.setTextWidth(label_widget.sizeHint().width())
+        text_document.setPlainText(label_widget.text())
+        label_widget_height = text_document.size().height()
+        return label_widget_height
+
+    def ckb_config_item_connect(self, check_box: QCheckBox, list_cb: list):
+        '''
+        信号连接, 功能：如果有一个勾选框未被选择, 则全选勾选框置为未选择
+        '''
+        all_checked = all(check_box.isChecked() for check_box in list_cb)
+        check_box.setChecked(all_checked)
+
+    def cb_widget_connect(self, checkbox: QCheckBox):
+        checkbox.setChecked(not checkbox.checkState())
+
+    def ckb_all_select(self):
+        '''
+        全选功能
+        '''
+        sender = self.sender()
+        if sender == self.cb_package_all_select:
+            if self.cb_package_all_select.isChecked():
+                for i in self.list_check_box_package:
+                    i: QCheckBox
+                    i.setChecked(True)
+        elif sender == self.cb_installed_all_select:
+            if self.cb_installed_all_select.isChecked():
+                for i in self.list_check_box_installed:
+                    i: QCheckBox
+                    i.setChecked(True)
+
+    def ckb_clicked(self):
+        '''
+        取消全选功能
+        '''
+        sender = self.sender()
+        if sender == self.cb_package_all_select:
+            if not self.cb_package_all_select.isChecked():
+                for i in self.list_check_box_package:
+                    i: QCheckBox
+                    i.setChecked(False)
+        elif sender == self.cb_installed_all_select:
+            if not self.cb_installed_all_select.isChecked():
+                for i in self.list_check_box_installed:
+                    i: QCheckBox
+                    i.setChecked(False)
+
+    def inverse_select(self):
+        '''
+        反选功能
+        '''
+        sender = self.sender()
+        if sender == self.pb_package_invert:
+            check_box_list = self.list_check_box_package
+        elif sender == self.pb_installed_invert:
+            check_box_list = self.list_check_box_installed
+        else:
+            return
+        for i in check_box_list:
+            i: QCheckBox
+            if i.isChecked():
+                i.setChecked(False)
+            else:
+                i.setChecked(True)
+
+    def refresh_list(self):
+        '''
+        刷新List-Widget功能
+        '''
+        sender = self.sender()
+        if sender == self.pb_package_update:
+            self.list_widget_show(self.listWidget_package, self.get_config_content())
+            self.cb_package_all_select.setChecked(False)
+        elif sender == self.pb_installed_update:
+            self.list_widget_show(self.listWidget_installed)
+            self.cb_installed_all_select.setChecked(False)
+
+    def tree_widget_all_expand(self):
+        '''
+        tree_widget 全部展开
+        '''
+        sender = self.sender()
+        if sender == self.pb_all_expand:
+            if self.treeWidget_dependency.topLevelItemCount() > 0:
+                self.treeWidget_dependency.expandAll()
+
+    def tree_widget_all_collapse(self):
+        '''
+        tree_widget 全部折叠
+        '''
+        sender = self.sender()
+        if sender == self.pb_all_collapse:
+            if self.treeWidget_dependency.topLevelItemCount() > 0:
+                self.treeWidget_dependency.collapseAll()
+
+    def all_clear(self):
+        '''
+        清空所有显示
+        '''
+        self.textbrowser.clear()
+        self.le_package_path.clear()
+        self.le_single_command.clear()
+        self.le_dependency_find.clear()
+        self.le_installed_find.clear()
+        self.le_package_find.clear()
+        self.cb_package_all_select.setChecked(False)
+        self.treeWidget_env.clearSelection()
+        self.cbb_install_env.setCurrentIndex(-1)
+        self.treeWidget_dependency.clear()
+        self.listWidget_package.clear()
+        self.frame_cb_command.hide()
+
+    def open_enviroment_variant(self):
+        '''
+        打开系统环境变量
+        '''
+        env_var = QThread_Environment_Variant()
+        env_var.start()
+        time.sleep(0.1)
+        env_var.quit()
+
+    def icon_setup(self, icon_code: str):
+        '''
+        设置图标
+
+        参数:
+            Icon_code: SVG 的源码(str)
+        '''
+        pixmap = QPixmap()
+        pixmap.loadFromData(QByteArray(icon_code.encode()))
+        return QIcon(pixmap)
+
+    def context_menu_treewidget_env_init(self, pos):
+        def open_env_folder(item):
+            if not item or not os.path.exists(item.text(1)):
+                return
+            subprocess.Popen(['explorer', '/select,', item.text(1)], creationflags=subprocess.CREATE_NO_WINDOW)
+
+        def remove_env(treewidget: QTreeWidget, item):
+            index = treewidget.indexOfTopLevelItem(item)
+            treewidget.takeTopLevelItem(index)
+        item = self.sender().itemAt(pos)
+        menu_context = QMenu(self.treeWidget_env)
+        action_open = QAction(self.language.context_menu_tree_env_open, self)
+        action_open.setIcon(self.icon_setup(OPEN_FOLDER_ICON))
+        action_open.triggered.connect(lambda: open_env_folder(item))
+        menu_context.addAction(action_open)
+        menu_context.setStyleSheet('color: rgb(19, 24, 66)')
+        if item.text(0).startswith('+'):
+            action_remove = QAction(self.language.context_menu_tree_env_remove, self)
+            action_remove.setIcon(self.icon_setup(REMOVE_ICON))
+            action_remove.triggered.connect(lambda: remove_env(self.treeWidget_env, item))
+            menu_context.addAction(action_remove)
+
+        menu_context.exec_(self.sender().mapToGlobal(pos))
+
+    def context_menu_treewidget_dependency_init(self, pos):
+        def expand_collapse_all(item: QTreeWidgetItem, status: bool):
+            item.setExpanded(status)
+            for index in range(item.childCount()):
+                expand_collapse_all(item.child(index), status)
+        item: QTreeWidgetItem = self.sender().itemAt(pos)
+        key_menu = QMenu(self.treeWidget_dependency)
+        action_expand = QAction(self.language.context_menu_tree_dep_expand, self)
+        action_expand.setIcon(self.icon_setup(EXPAND_ICON))
+        action_expand.triggered.connect(lambda: expand_collapse_all(item, True))
+        key_menu.addAction(action_expand)
+        action_collapse = QAction(self.language.context_menu_tree_dep_collapse, self)
+        action_collapse.setIcon(self.icon_setup(COLLAPSE_ICON))
+        action_collapse.triggered.connect(lambda: expand_collapse_all(item, False))
+        key_menu.addAction(action_collapse)
+        key_menu.setStyleSheet('color: rgb(19, 24, 66)')
+        key_menu.exec_(self.sender().mapToGlobal(pos))
+
+    # def find_in_treewidget(self, treewidget: QTreeWidget, content: str):
+    #     def highlight_item(item: QTreeWidgetItem):
+    #         item.setBackground(0, QBrush(QColor('#B4E380')))  # Highlight the item with yellow background
+    #         item.setSelected(True)
+
+    #     def clear_highlighting(treewidget):
+    #         for item in treewidget.findItems('', Qt.MatchContains | Qt.MatchRecursive):
+    #             item: QTreeWidgetItem
+    #             item.setBackground(0, QBrush(QColor('transparent')))
+    #             item.setSelected(False)
+
+    #     def search_items(item: QTreeWidgetItem, content):
+    #         for index in range(item.childCount()):
+    #             child = item.child(index)
+    #             if content in child.text(0).lower():
+    #                 highlight_item(child)
+    #             search_items(child, content)
+    #     clear_highlighting(treewidget)
+    #     search_items(treewidget.invisibleRootItem(), content)
+
+    def clear_find_result_in_treewidget(self, treewidget: QTreeWidget):
+        if self.le_dependency_find.text() and self.le_dependency_find.text() != '':
+            return
+        for item in treewidget.findItems('', Qt.MatchContains | Qt.MatchRecursive):
+            item: QTreeWidgetItem
+            item.setBackground(0, QBrush(QColor('transparent')))
+            item.setSelected(False)
+
+    def find_in_treewidget_dependency(self):
+        def highlight_item(item: QTreeWidgetItem):
+            item.setBackground(0, QBrush(QColor('#B4E380')))  # Highlight the item with yellow background
+            item.setSelected(True)
+
+        def clear_highlighting(treewidget):
+            for item in treewidget.findItems('', Qt.MatchContains | Qt.MatchRecursive):
+                item: QTreeWidgetItem
+                item.setBackground(0, QBrush(QColor('transparent')))
+                item.setSelected(False)
+
+        def search_items(item: QTreeWidgetItem, content):
+            for index in range(item.childCount()):
+                child = item.child(index)
+                if content in child.text(0).lower():
+                    highlight_item(child)
+                search_items(child, content)
+
+        content = self.le_dependency_find.text().lower()
+        if not content or content == '':
+            return
+        clear_highlighting(self.treeWidget_dependency)
+        search_items(self.treeWidget_dependency.invisibleRootItem(), content)
+
+    def find_in_listwidget_installed(self):
+        content = self.le_installed_find.text().lower()
+        if not content or content == '':
+            return
+        count = self.listWidget_installed.count()
+        for index in range(count):
+            item = self.listWidget_installed.item(index)
+            if content in item.text().lower():
+                item.setBackground(QBrush(QColor('#B4E380')))
+            else:
+                item.setBackground(QBrush(QColor('transparent')))
+
+    def find_in_listwidget_package(self):
+        content = self.le_package_find.text().lower()
+        if not content or content == '':
+            return
+        count = self.listWidget_package.count()
+        for index in range(count):
+            item = self.listWidget_package.item(index)
+            widget = self.listWidget_package.itemWidget(item)
+            label: QLabel = widget.findChild(QLabel)
+            if content in label.text().lower():
+                item.setBackground(QBrush(QColor('#B4E380')))
+            else:
+                item.setBackground(QBrush(QColor('transparent')))
+
+    def clear_find_result_in_listwidget(self, line_edit: QLineEdit, listwidget: QListWidget):
+        if line_edit.text() and line_edit.text() != '':
+            return
+        count = listwidget.count()
+        for index in range(count):
+            item = listwidget.item(index)
+            item.setBackground(QBrush(QColor('transparent')))
+
+    def get_selected_item_package_list(self, listwidget: QListWidget) -> list:
+        command_list = []
+        count = listwidget.count()
+        for index in range(count):
+            item = listwidget.item(index)
+            widget = listwidget.itemWidget(item)
+            checkbox: QCheckBox = widget.findChild(QCheckBox)
+            label: QLabel = widget.findChild(QLabel)
+            if checkbox.isChecked():
+                text = label.text()
+                command_list.append(text)
+        return command_list
+
+    def add_env(self):
+        dialog = Env_Manual_Add(self)
+        dialog.exec_()
+        env, env_path = dialog.get_input()
+        env_name = ''
+        if not env:
+            return
+        if env not in self.dict_env_add:
+            self.dict_env_add[env] = []
+        for i in [self.dict_env_add, self.dict_env]:
+            # 查重, 查看 各个虚拟环境器
+            for list_from_env_key in i.values():
+                # print(list_from_env_key)
+                # 查看 虚拟环境器中的虚拟环境
+                for env_item in list_from_env_key:
+                    # 如果该路径/虚拟环境已经存在
+                    # print(env_item)
+                    if len(env_item) > 1 and env_item[1] == env_path:
+                        self.search_item_in_treewidget_env(env_path)
+                        return
+
+        if env == 'venv':
+            env_name = os.path.basename(os.path.dirname(os.path.dirname(env_path)))
+
+        self.dict_env_add[env].append([env_name, env_path])
+        self.env_config_manager.write_config(self.dict_env_add)
+        voll_tip_text = f'+({env}){env_name}   {env_path}'
+        item = QTreeWidgetItem(self.treeWidget_env)
+        item.setText(0, f'+({env}){env_name}')
+        item.setText(1, env_path)
+        item.setToolTip(0, voll_tip_text)
+        item.setToolTip(1, voll_tip_text)
+        self.cbb_install_env.addItem(f'+({env}){env_name}')
+
+    def search_item_in_treewidget_env(self, content: str):
+        for index in range(self.treeWidget_env.invisibleRootItem().childCount()):
+            child = self.treeWidget_env.invisibleRootItem().child(index)
+            if content.lower() == child.text(1).lower():
+                child.setSelected(True)
+
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    exe = Manager_UI()
+    exe.show()
+    sys.exit(app.exec_())

@@ -34,12 +34,15 @@ class Console_TextBrowser(QWidget):
         try:
             self.text_browser.moveCursor(QTextCursor.End)
             self.text_browser.insertPlainText(str(text_on_textbrowser) + "\n")
+            # print(str(text_on_textbrowser) + "\n")
             self.text_browser.moveCursor(QTextCursor.End)
+
         except Exception as e:
             if self.__flag_traceback_display:
                 e = traceback.format_exc()
             self.text_browser.moveCursor(QTextCursor.End)
             self.text_browser.insertPlainText(str(e) + "\n")
+            print(str(e) + "\n")
             self.text_browser.moveCursor(QTextCursor.End)
 
     def clear(self) -> None:
@@ -330,4 +333,4 @@ class Console_TextBrowser(QWidget):
         '''
         scrollbar = self.text_browser.verticalScrollBar()
         value = scrollbar.value()
-        scrollbar.setValue(value+2)()
+        scrollbar.setValue(value+2)

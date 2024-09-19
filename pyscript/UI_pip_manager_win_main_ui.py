@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'e:\10_Programm\0002_Python\0109_pip第三方库安装\pip_conda_manager\pip_manager_win_main.ui'
+# Form implementation generated from reading ui file 'e:\10_Programm\0002_Python\0109_pip第三方库安装\pip_conda_manager\UI_pip_manager_win_main.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.9
 #
