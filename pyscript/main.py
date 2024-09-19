@@ -1,6 +1,6 @@
 
 
-from pip_manager_function import *
+from Function_pip_manager import *
 
 
 class Manager_Main(Manager_Function):
