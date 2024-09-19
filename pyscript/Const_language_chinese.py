@@ -146,5 +146,8 @@ LANGUAGE_CHINESE = {
         'dependency_tree': '依赖树',
         'installed_package': '已安装包',
         'package_batch_install': '批量安装导入',
+        'warning': '警告',
+        'error_pip_record_read': '请检查 .pip_record 文件, 数据格式应为 Json, 当前数据格式错误, 无法获取记录信息',
+        'single_command': '单行命令'
     }
 }
