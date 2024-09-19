@@ -1,8 +1,8 @@
 
 
 from QThread_Conda_Env import *
-from ConsoleTextBrowser import *
-from language_manager import *
+from Widget_ConsoleTextBrowser import *
+from Manager_language import *
 from QThread_Virtual_Environment_Manager import *
 
 
